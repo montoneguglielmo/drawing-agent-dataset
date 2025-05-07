@@ -18,16 +18,28 @@ class DrawingVideoGenerator:
         self.compass_size = 40  # Size of the compass in pixels
         self.compass_margin = 10  # Margin from the edge
         self.look_ahead_frames = 5  # Number of frames to look ahead for direction
+        self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
+        self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
         
     def create_white_background(self):
         """Create a white background image."""
         return np.ones((self.height, self.width, 3), dtype=np.uint8) * 255
     
-    def draw_compass(self, frame, direction):
+    def draw_compass(self, frame, direction, is_drawing=True):
         """Draw a compass in the top right corner showing the current drawing direction."""
         # Calculate compass position
         x = self.width - self.compass_size - self.compass_margin
         y = self.compass_margin
+        
+        # Draw status indicator box
+        status_box_size = 15
+        status_x = x - status_box_size - 5  # 5 pixels margin from compass
+        status_y = y
+        status_color = (0, 0, 255) if is_drawing else (128, 128, 128)  # Red for drawing, Grey for pause
+        cv2.rectangle(frame, 
+                     (status_x, status_y),
+                     (status_x + status_box_size, status_y + status_box_size),
+                     status_color, -1)  # -1 for filled rectangle
         
         # Draw cardinal points
         center = (x + self.compass_size//2, y + self.compass_size//2)
@@ -75,6 +87,27 @@ class DrawingVideoGenerator:
             
         return points
     
+    def generate_drawing_mask(self, num_frames):
+        """Generate a mask indicating when to draw (1) and when to pause (0)."""
+        # Initialize mask with all ones (drawing)
+        mask = np.ones(num_frames, dtype=int)
+        
+        # 50% chance to have a pause
+        if random.random() < 0.5:
+            # Randomly select start of pause
+            pause_start = random.randint(0, num_frames - self.min_pause_frames)
+            
+            # Randomly select pause duration
+            pause_duration = random.randint(self.min_pause_frames, self.max_pause_frames)
+            
+            # Ensure pause doesn't exceed video length
+            pause_end = min(pause_start + pause_duration, num_frames)
+            
+            # Set pause frames to 0
+            mask[pause_start:pause_end] = 0
+        
+        return mask
+    
     def interpolate_points(self, points, num_frames):
         """Interpolate between points using scipy's interp1d for smooth movement."""
         if len(points) < 2:
@@ -110,17 +143,21 @@ class DrawingVideoGenerator:
         points = self.generate_random_path()
         interpolated_points = self.interpolate_points(points, self.total_frames)
         
+        # Generate drawing mask
+        drawing_mask = self.generate_drawing_mask(self.total_frames)
+        
         # Create frames
         for i in range(self.total_frames):
             frame = self.create_white_background()
             
-            # Draw all lines up to current point
+            # Draw all lines up to current point, respecting the drawing mask
             if i > 0:
                 for j in range(1, i + 1):
-                    cv2.line(frame, 
-                            interpolated_points[j-1],
-                            interpolated_points[j],
-                            (0, 0, 0), 2)
+                    if drawing_mask[j-1] and drawing_mask[j]:  # Only draw if both points are in drawing mode
+                        cv2.line(frame, 
+                                interpolated_points[j-1],
+                                interpolated_points[j],
+                                (0, 0, 0), 2)
             
             # Draw current cursor position
             cv2.circle(frame, interpolated_points[i], 5, (255, 0, 0), -1)
@@ -132,13 +169,18 @@ class DrawingVideoGenerator:
                     interpolated_points[look_ahead_idx],
                     interpolated_points[look_ahead_idx + 1]
                 )
+                # Use look-ahead for drawing state
+                is_drawing = bool(drawing_mask[look_ahead_idx])
             else:
                 # For the last frame, use the previous direction
                 direction = self.calculate_direction(
                     interpolated_points[look_ahead_idx - 1],
                     interpolated_points[look_ahead_idx]
                 )
-            self.draw_compass(frame, direction)
+                # Use current state for last frames
+                is_drawing = bool(drawing_mask[i])
+            
+            self.draw_compass(frame, direction, is_drawing)
             
             out.write(frame)
         
