@@ -7,9 +7,10 @@ import argparse
 from datetime import datetime
 import math
 from scipy.interpolate import interp1d
+from noise import pnoise2  # Add this import for Perlin noise
 
 class DrawingVideoGenerator:
-    def __init__(self, width=200, height=200, fps=30, duration=3):
+    def __init__(self, width=200, height=200, fps=30, duration=3, show_compass=True):
         self.width = width
         self.height = height
         self.fps = fps
@@ -20,7 +21,40 @@ class DrawingVideoGenerator:
         self.look_ahead_frames = 5  # Number of frames to look ahead for direction
         self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
         self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
+        self.show_compass = show_compass  # Whether to show the compass
         
+    def create_smooth_grey_background(self):
+        """Create a smooth grey background using Perlin noise."""
+        # Create a grid of coordinates
+        x = np.linspace(0, 1, self.width)
+        y = np.linspace(0, 1, self.height)
+        X, Y = np.meshgrid(x, y)
+        
+        # Generate random parameters for Perlin noise
+        scale = random.uniform(5.0, 15.0)  # Scale between 5 and 15
+        octaves = random.randint(4, 8)     # Octaves between 4 and 8
+        persistence = random.uniform(0.3, 0.7)  # Persistence between 0.3 and 0.7
+        lacunarity = random.uniform(1.5, 2.5)  # Lacunarity between 1.5 and 2.5
+        
+        # Generate noise for each pixel
+        noise = np.zeros((self.height, self.width))
+        for i in range(self.height):
+            for j in range(self.width):
+                noise[i, j] = pnoise2(X[i, j] * scale, 
+                                    Y[i, j] * scale, 
+                                    octaves=octaves, 
+                                    persistence=persistence, 
+                                    lacunarity=lacunarity)
+        
+        # Map noise values directly to 0-255 range
+        # Perlin noise typically ranges from -1 to 1, so we map it to 0-255
+        grey = ((noise + 1) * 127.5).astype(np.uint8)
+        
+        # Create a 3-channel image with the same grey value in all channels
+        background = np.stack([grey, grey, grey], axis=-1)
+        
+        return background
+
     def create_white_background(self):
         """Create a white background image."""
         return np.ones((self.height, self.width, 3), dtype=np.uint8) * 255
@@ -70,17 +104,25 @@ class DrawingVideoGenerator:
     def generate_random_path(self, num_points=10):
         """Generate a random path for the drawing."""
         points = []
-        current_x = random.randint(50, self.width - 50)
-        current_y = random.randint(50, self.height - 50)
+        # Calculate margins as 10% of dimensions
+        margin_x = int(self.width * 0.1)
+        margin_y = int(self.height * 0.1)
+        
+        # Initial point within margins
+        current_x = random.randint(margin_x, self.width - margin_x)
+        current_y = random.randint(margin_y, self.height - margin_y)
         
         for _ in range(num_points):
             # Generate next point with some randomness
-            next_x = current_x + random.randint(-50, 50)
-            next_y = current_y + random.randint(-50, 50)
+            # Use 20% of dimensions for maximum step size
+            max_step_x = int(self.width * 0.2)
+            max_step_y = int(self.height * 0.2)
+            next_x = current_x + random.randint(-max_step_x, max_step_x)
+            next_y = current_y + random.randint(-max_step_y, max_step_y)
             
-            # Keep points within bounds
-            next_x = max(50, min(self.width - 50, next_x))
-            next_y = max(50, min(self.height - 50, next_y))
+            # Keep points within margins
+            next_x = max(margin_x, min(self.width - margin_x, next_x))
+            next_y = max(margin_y, min(self.height - margin_y, next_y))
             
             points.append((next_x, next_y))
             current_x, current_y = next_x, next_y
@@ -148,7 +190,7 @@ class DrawingVideoGenerator:
         
         # Create frames
         for i in range(self.total_frames):
-            frame = self.create_white_background()
+            frame = self.create_smooth_grey_background()
             
             # Draw all lines up to current point, respecting the drawing mask
             if i > 0:
@@ -180,7 +222,8 @@ class DrawingVideoGenerator:
                 # Use current state for last frames
                 is_drawing = bool(drawing_mask[i])
             
-            self.draw_compass(frame, direction, is_drawing)
+            if self.show_compass:
+                self.draw_compass(frame, direction, is_drawing)
             
             out.write(frame)
         
@@ -190,10 +233,11 @@ def main():
     parser = argparse.ArgumentParser(description='Generate synthetic drawing videos')
     parser.add_argument('--num_videos', type=int, default=100, help='Number of videos to generate')
     parser.add_argument('--output_dir', type=str, default='./dataset', help='Output directory for videos')
-    parser.add_argument('--width', type=int, default=200, help='Video width')
-    parser.add_argument('--height', type=int, default=200, help='Video height')
+    parser.add_argument('--width', type=int, default=112, help='Video width')
+    parser.add_argument('--height', type=int, default=112, help='Video height')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
     parser.add_argument('--duration', type=int, default=3, help='Video duration in seconds')
+    parser.add_argument('--no_compass', action='store_true', help='Disable the compass in the video')
     
     args = parser.parse_args()
     
@@ -205,7 +249,8 @@ def main():
         width=args.width,
         height=args.height,
         fps=args.fps,
-        duration=args.duration
+        duration=args.duration,
+        show_compass=not args.no_compass
     )
     
     # Generate videos
