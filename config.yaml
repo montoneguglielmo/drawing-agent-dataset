@@ -1,0 +1,19 @@
+# Image dimensions
+image:
+  width: 200
+  height: 200
+
+# Background generation parameters
+background:
+  scale:
+    min: 5.0
+    max: 15.0
+  octaves:
+    min: 4
+    max: 8
+  persistence:
+    min: 0.3
+    max: 0.7
+  lacunarity:
+    min: 1.5
+    max: 2.5 

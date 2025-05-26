@@ -8,11 +8,16 @@ from datetime import datetime
 import math
 from scipy.interpolate import interp1d
 from noise import pnoise2  # Add this import for Perlin noise
+import yaml  # Add yaml import
 
 class DrawingVideoGenerator:
-    def __init__(self, width=200, height=200, fps=30, duration=3, show_compass=True):
-        self.width = width
-        self.height = height
+    def __init__(self, config_path='config.yaml', fps=30, duration=3, show_compass=True):
+        # Load configuration
+        with open(config_path, 'r') as f:
+            self.config = yaml.safe_load(f)
+        
+        self.width = self.config['image']['width']
+        self.height = self.config['image']['height']
         self.fps = fps
         self.duration = duration
         self.total_frames = fps * duration
@@ -30,11 +35,12 @@ class DrawingVideoGenerator:
         y = np.linspace(0, 1, self.height)
         X, Y = np.meshgrid(x, y)
         
-        # Generate random parameters for Perlin noise
-        scale = random.uniform(5.0, 15.0)  # Scale between 5 and 15
-        octaves = random.randint(4, 8)     # Octaves between 4 and 8
-        persistence = random.uniform(0.3, 0.7)  # Persistence between 0.3 and 0.7
-        lacunarity = random.uniform(1.5, 2.5)  # Lacunarity between 1.5 and 2.5
+        # Get parameters from config
+        bg_config = self.config['background']
+        scale = random.uniform(bg_config['scale']['min'], bg_config['scale']['max'])
+        octaves = random.randint(bg_config['octaves']['min'], bg_config['octaves']['max'])
+        persistence = random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
+        lacunarity = random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
         
         # Generate noise for each pixel
         noise = np.zeros((self.height, self.width))
@@ -233,8 +239,7 @@ def main():
     parser = argparse.ArgumentParser(description='Generate synthetic drawing videos')
     parser.add_argument('--num_videos', type=int, default=100, help='Number of videos to generate')
     parser.add_argument('--output_dir', type=str, default='./dataset', help='Output directory for videos')
-    parser.add_argument('--width', type=int, default=112, help='Video width')
-    parser.add_argument('--height', type=int, default=112, help='Video height')
+    parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
     parser.add_argument('--duration', type=int, default=3, help='Video duration in seconds')
     parser.add_argument('--no_compass', action='store_true', help='Disable the compass in the video')
@@ -246,8 +251,7 @@ def main():
     
     # Initialize generator
     generator = DrawingVideoGenerator(
-        width=args.width,
-        height=args.height,
+        config_path=args.config,
         fps=args.fps,
         duration=args.duration,
         show_compass=not args.no_compass
