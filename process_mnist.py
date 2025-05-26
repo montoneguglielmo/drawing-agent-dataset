@@ -31,15 +31,13 @@ class MNISTProcessor:
         persistence = random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
         lacunarity = random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
         
-        # Generate noise for each pixel
-        noise = np.zeros((self.height, self.width))
-        for i in range(self.height):
-            for j in range(self.width):
-                noise[i, j] = pnoise2(X[i, j] * scale, 
-                                    Y[i, j] * scale, 
-                                    octaves=octaves, 
-                                    persistence=persistence, 
-                                    lacunarity=lacunarity)
+        # Assuming X, Y are meshgrids of shape (height, width)
+        vectorized_pnoise2 = np.vectorize(lambda x, y: pnoise2(x * scale, y * scale, 
+                                                       octaves=octaves, 
+                                                       persistence=persistence, 
+                                                       lacunarity=lacunarity))
+
+        noise = vectorized_pnoise2(X, Y)
         
         # Map noise values to 0-255 range
         grey = ((noise + 1) * 127.5).astype(np.uint8)

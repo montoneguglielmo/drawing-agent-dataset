@@ -21,8 +21,10 @@ process_mnist:
 
 # Clean generated files
 clean:
-	rm -rf $(shell grep -A1 "output:" config.yaml | grep "mnist:" | cut -d'"' -f2)
-	rm -rf $(shell grep -A1 "output:" config.yaml | grep "videos:" | cut -d'"' -f2)
+	$(PYTHON) -c "import yaml; config = yaml.safe_load(open('config.yaml')); \
+		import shutil; \
+		shutil.rmtree(config['output']['mnist'], ignore_errors=True); \
+		shutil.rmtree(config['output']['videos'], ignore_errors=True)"
 
 # Clean everything including virtual environment
 clean-all: clean

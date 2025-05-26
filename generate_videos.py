@@ -42,15 +42,23 @@ class DrawingVideoGenerator:
         persistence = random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
         lacunarity = random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
         
-        # Generate noise for each pixel
-        noise = np.zeros((self.height, self.width))
-        for i in range(self.height):
-            for j in range(self.width):
-                noise[i, j] = pnoise2(X[i, j] * scale, 
-                                    Y[i, j] * scale, 
-                                    octaves=octaves, 
-                                    persistence=persistence, 
-                                    lacunarity=lacunarity)
+        # # Generate noise for each pixel
+        # noise = np.zeros((self.height, self.width))
+        # for i in range(self.height):
+        #     for j in range(self.width):
+        #         noise[i, j] = pnoise2(X[i, j] * scale, 
+        #                             Y[i, j] * scale, 
+        #                             octaves=octaves, 
+        #                             persistence=persistence, 
+        #                             lacunarity=lacunarity)
+        
+        vectorized_pnoise2 = np.vectorize(lambda x, y: pnoise2(x * scale, y * scale, 
+                                                       octaves=octaves, 
+                                                       persistence=persistence, 
+                                                       lacunarity=lacunarity))
+
+        noise = vectorized_pnoise2(X, Y)
+        
         
         # Map noise values directly to 0-255 range
         # Perlin noise typically ranges from -1 to 1, so we map it to 0-255
@@ -240,7 +248,7 @@ def main():
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
     parser.add_argument('--duration', type=int, default=3, help='Video duration in seconds')
-    parser.add_argument('--no_compass', action='store_true', help='Disable the compass in the video')
+    parser.add_argument('--show_compass', action='store_true', help='Enable the compass in the video')
     
     args = parser.parse_args()
     
@@ -260,7 +268,7 @@ def main():
         config_path=args.config,
         fps=args.fps,
         duration=args.duration,
-        show_compass=not args.no_compass
+        show_compass=args.show_compass
     )
     
     # Generate videos
