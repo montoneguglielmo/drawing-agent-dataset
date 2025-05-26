@@ -83,8 +83,8 @@ class MNISTProcessor:
         images = []
         labels = []
         
-        # Create directory for sample images
-        sample_dir = os.path.join('processed_mnist', 'samples')
+        # Create directory for sample images using the mnist output path from config
+        sample_dir = os.path.join(self.config['output']['mnist'], 'samples')
         os.makedirs(sample_dir, exist_ok=True)
         
         for i, (image, label) in enumerate(tqdm(dataset, desc=f"Processing {name} images")):
@@ -104,12 +104,14 @@ class MNISTProcessor:
         return images, labels
 
 def main():
-    # Create output directory
-    output_dir = 'processed_mnist'
-    os.makedirs(output_dir, exist_ok=True)
-    
     # Initialize processor
     processor = MNISTProcessor()
+    
+    # Get output directory from config
+    output_dir = processor.config['output']['mnist']
+    
+    # Create output directory
+    os.makedirs(output_dir, exist_ok=True)
     
     # Load MNIST datasets
     print("Loading MNIST datasets...")

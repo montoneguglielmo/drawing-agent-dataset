@@ -237,8 +237,6 @@ class DrawingVideoGenerator:
 
 def main():
     parser = argparse.ArgumentParser(description='Generate synthetic drawing videos')
-    parser.add_argument('--num_videos', type=int, default=100, help='Number of videos to generate')
-    parser.add_argument('--output_dir', type=str, default='./dataset', help='Output directory for videos')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
     parser.add_argument('--duration', type=int, default=3, help='Video duration in seconds')
@@ -246,8 +244,16 @@ def main():
     
     args = parser.parse_args()
     
+    # Load configuration
+    with open(args.config, 'r') as f:
+        config = yaml.safe_load(f)
+    
+    # Get output directory and number of videos from config
+    output_dir = config['output']['videos']
+    num_videos = config['generation']['num_videos']
+    
     # Create output directory if it doesn't exist
-    os.makedirs(args.output_dir, exist_ok=True)
+    os.makedirs(output_dir, exist_ok=True)
     
     # Initialize generator
     generator = DrawingVideoGenerator(
@@ -258,13 +264,13 @@ def main():
     )
     
     # Generate videos
-    print(f"Generating {args.num_videos} videos...")
-    for i in tqdm(range(args.num_videos)):
+    print(f"Generating {num_videos} videos...")
+    for i in tqdm(range(num_videos)):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(args.output_dir, f"drawing_{timestamp}_{i:04d}.mp4")
+        output_path = os.path.join(output_dir, f"drawing_{timestamp}_{i:04d}.mp4")
         generator.generate_video(output_path)
     
-    print(f"Generated {args.num_videos} videos in {args.output_dir}")
+    print(f"Generated {num_videos} videos in {output_dir}")
 
 if __name__ == "__main__":
     main() 

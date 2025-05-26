@@ -16,4 +16,13 @@ background:
     max: 0.7
   lacunarity:
     min: 1.5
-    max: 2.5 
+    max: 2.5
+
+# Output directories
+output:
+  videos: "../datasets/drawing-agent-test/video"
+  mnist: "../datasets/drawing-agent-test/mnist"
+
+# Generation parameters
+generation:
+  num_videos: 5 

@@ -21,8 +21,8 @@ process_mnist:
 
 # Clean generated files
 clean:
-	rm -rf processed_mnist/
-	rm -rf dataset/
+	rm -rf $(shell grep -A1 "output:" config.yaml | grep "mnist:" | cut -d'"' -f2)
+	rm -rf $(shell grep -A1 "output:" config.yaml | grep "videos:" | cut -d'"' -f2)
 
 # Clean everything including virtual environment
 clean-all: clean
