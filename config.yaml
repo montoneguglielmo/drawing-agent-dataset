@@ -1,28 +1,31 @@
 # Image dimensions
 image:
-  width: 200
-  height: 200
+  width: 100
+  height: 100
 
 # Background generation parameters
 background:
+  num_backgrounds: 1000  # Number of backgrounds to generate
   scale:
-    min: 5.0
-    max: 15.0
+    min: 2.0
+    max: 20.0
   octaves:
-    min: 4
-    max: 8
+    min: 2
+    max: 10
   persistence:
-    min: 0.3
-    max: 0.7
+    min: 0.1
+    max: 0.9
   lacunarity:
-    min: 1.5
-    max: 2.5
+    min: 1.0
+    max: 3.0
 
 # Output directories
 output:
   videos: "../datasets/drawing-agent-test/video"
   mnist: "../datasets/drawing-agent-test/mnist"
+  backgrounds: "../datasets/drawing-agent-test/backgrounds"
+  comparisons: "../datasets/drawing-agent-test/comparisons"
 
 # Generation parameters
 generation:
-  num_videos: 5 
+  num_videos: 15 

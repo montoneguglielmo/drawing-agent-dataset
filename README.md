@@ -1,42 +1,147 @@
 # Drawing Agent Dataset Generator
 
-This project generates synthetic videos of drawing actions using VJepa. The videos simulate a white paper in a drawing software with mouse movements and line drawings.
+This project generates synthetic drawing videos and MNIST dataset samples for training drawing agents. It creates a dataset that includes:
+- Perlin noise backgrounds
+- Drawing videos with compass indicators
+- MNIST digit samples with backgrounds
+- Comparison samples between videos and MNIST digits
 
-## Features
+## Prerequisites
 
-- Generate synthetic drawing videos
-- Simulate mouse movements and drawing actions
-- Create a dataset suitable for VJepa training
+- Python 3.x
+- Virtual environment (recommended)
 
-## Setup
+## Installation
 
-1. Clone this repository:
+1. Clone the repository
+2. Create and activate a virtual environment:
 ```bash
-git clone https://github.com/yourusername/drawing-agent-dataset.git
-cd drawing-agent-dataset
+python3 -m venv venv
+source venv/bin/activate  # On Unix/macOS
+# or
+.\venv\Scripts\activate  # On Windows
 ```
 
-2. Create a virtual environment and install dependencies:
+3. Install dependencies:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows, use: venv\Scripts\activate
 pip install -r requirements.txt
+```
+
+## Configuration
+
+The project uses a `config.yaml` file to configure various parameters:
+
+```yaml
+# Image dimensions
+image:
+  width: 100
+  height: 100
+
+# Background generation parameters
+background:
+  num_backgrounds: 1000  # Number of backgrounds to generate
+  scale:
+    min: 2.0
+    max: 20.0
+  octaves:
+    min: 2
+    max: 10
+  persistence:
+    min: 0.1
+    max: 0.9
+  lacunarity:
+    min: 1.0
+    max: 3.0
+
+# Output directories
+output:
+  videos: "../datasets/drawing-agent-test/video"
+  mnist: "../datasets/drawing-agent-test/mnist"
+  backgrounds: "../datasets/drawing-agent-test/backgrounds"
+  comparisons: "../datasets/drawing-agent-test/comparisons"
+
+# Generation parameters
+generation:
+  num_videos: 15
 ```
 
 ## Usage
 
-To generate synthetic drawing videos:
+The project provides several Makefile targets for different operations:
 
+### Generate Complete Dataset
+To generate the entire dataset (backgrounds, MNIST samples, videos, and comparisons):
 ```bash
-python generate_videos.py --num_videos 100 --output_dir ./dataset
+make generate_dataset
+```
+
+### Individual Components
+You can also generate individual components:
+
+- Generate backgrounds:
+```bash
+make generate_backgrounds
+```
+
+- Generate MNIST samples:
+```bash
+make generate_mnist
+```
+
+- Generate drawing videos:
+```bash
+make generate_videos
+```
+
+- Generate comparison samples:
+```bash
+make compare_samples
+```
+
+### Cleaning Up
+To clean generated files:
+```bash
+make clean
+```
+
+To clean everything including the virtual environment:
+```bash
+make clean-all
 ```
 
 ## Project Structure
 
-- `generate_videos.py`: Main script for generating synthetic videos
-- `requirements.txt`: Project dependencies
-- `dataset/`: Directory containing generated videos (created when running the script)
+- `generate_backgrounds.py`: Generates Perlin noise backgrounds
+- `generate_videos.py`: Creates drawing videos with compass indicators
+- `process_mnist.py`: Processes MNIST dataset and combines with backgrounds
+- `compare_samples.py`: Creates comparison samples between videos and MNIST digits
+- `config.yaml`: Configuration file for all parameters
+- `Makefile`: Build automation and task management
 
-## License
+## Output Structure
 
-MIT License 
+The generated dataset will be organized in the following structure:
+```
+datasets/drawing-agent-test/
+├── backgrounds/
+│   └── backgrounds.npy
+├── mnist/
+│   ├── samples/
+│   ├── train_images.npy
+│   ├── train_labels.npy
+│   ├── test_images.npy
+│   └── test_labels.npy
+├── video/
+│   └── drawing_*.mp4
+└── comparisons/
+    └── comparison_*.png
+```
+
+## Features
+
+- Perlin noise background generation
+- Drawing videos with compass indicators showing direction
+- MNIST digit processing with background integration
+- Comparison samples for visual analysis
+- Configurable parameters through YAML
+- Automated build process with Makefile 
