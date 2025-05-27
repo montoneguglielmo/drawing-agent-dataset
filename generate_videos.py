@@ -28,50 +28,25 @@ class DrawingVideoGenerator:
         self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
         self.show_compass = show_compass  # Whether to show the compass
         
-    def create_smooth_grey_background(self):
-        """Create a smooth grey background using Perlin noise."""
-        # Create a grid of coordinates
-        x = np.linspace(0, 1, self.width)
-        y = np.linspace(0, 1, self.height)
-        X, Y = np.meshgrid(x, y)
+        # Load pre-generated backgrounds
+        backgrounds_path = os.path.join(self.config['output']['backgrounds'], 'backgrounds.npy')
+        if not os.path.exists(backgrounds_path):
+            raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
+        self.backgrounds = np.load(backgrounds_path)
         
-        # Get parameters from config
-        bg_config = self.config['background']
-        scale = random.uniform(bg_config['scale']['min'], bg_config['scale']['max'])
-        octaves = random.randint(bg_config['octaves']['min'], bg_config['octaves']['max'])
-        persistence = random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
-        lacunarity = random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
+    def get_random_background(self):
+        """Get a random background from the pre-generated ones."""
+        idx = random.randint(0, len(self.backgrounds) - 1)
+        background = self.backgrounds[idx]
         
-        # # Generate noise for each pixel
-        # noise = np.zeros((self.height, self.width))
-        # for i in range(self.height):
-        #     for j in range(self.width):
-        #         noise[i, j] = pnoise2(X[i, j] * scale, 
-        #                             Y[i, j] * scale, 
-        #                             octaves=octaves, 
-        #                             persistence=persistence, 
-        #                             lacunarity=lacunarity)
-        
-        vectorized_pnoise2 = np.vectorize(lambda x, y: pnoise2(x * scale, y * scale, 
-                                                       octaves=octaves, 
-                                                       persistence=persistence, 
-                                                       lacunarity=lacunarity))
-
-        noise = vectorized_pnoise2(X, Y)
-        
-        
-        # Map noise values directly to 0-255 range
-        # Perlin noise typically ranges from -1 to 1, so we map it to 0-255
-        grey = ((noise + 1) * 127.5).astype(np.uint8)
-        
-        # Create a 3-channel image with the same grey value in all channels
-        background = np.stack([grey, grey, grey], axis=-1)
+        # Scale to 0-255 range and keep as 2D array
+        background = (background * 255).astype(np.uint8)
         
         return background
 
     def create_white_background(self):
         """Create a white background image."""
-        return np.ones((self.height, self.width, 3), dtype=np.uint8) * 255
+        return np.ones((self.height, self.width), dtype=np.uint8) * 255
     
     def draw_compass(self, frame, direction, is_drawing=True):
         """Draw a compass in the top right corner showing the current drawing direction."""
@@ -83,7 +58,7 @@ class DrawingVideoGenerator:
         status_box_size = 15
         status_x = x - status_box_size - 5  # 5 pixels margin from compass
         status_y = y
-        status_color = (0, 0, 255) if is_drawing else (128, 128, 128)  # Red for drawing, Grey for pause
+        status_color = 255 if is_drawing else 128  # White for drawing, Grey for pause
         cv2.rectangle(frame, 
                      (status_x, status_y),
                      (status_x + status_box_size, status_y + status_box_size),
@@ -94,17 +69,17 @@ class DrawingVideoGenerator:
         radius = self.compass_size//2 - 5
         
         # Draw N, S, E, W markers
-        cv2.putText(frame, "N", (center[0]-5, y+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        cv2.putText(frame, "S", (center[0]-5, y+self.compass_size-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        cv2.putText(frame, "E", (x+self.compass_size-10, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
-        cv2.putText(frame, "W", (x+5, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 0), 1)
+        cv2.putText(frame, "N", (center[0]-5, y+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        cv2.putText(frame, "S", (center[0]-5, y+self.compass_size-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        cv2.putText(frame, "E", (x+self.compass_size-10, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        cv2.putText(frame, "W", (x+5, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
         
         # Draw direction arrow
         if direction is not None:
             angle = math.radians(direction)
             end_x = center[0] + int(radius * math.sin(angle))
             end_y = center[1] - int(radius * math.cos(angle))
-            cv2.arrowedLine(frame, center, (end_x, end_y), (0, 0, 255), 2)
+            cv2.arrowedLine(frame, center, (end_x, end_y), 255, 2)
     
     def calculate_direction(self, point1, point2):
         """Calculate the direction between two points in degrees (0 is North, 90 is East)."""
@@ -193,7 +168,7 @@ class DrawingVideoGenerator:
         """Generate a single drawing video."""
         # Create video writer
         fourcc = cv2.VideoWriter_fourcc(*'mp4v')
-        out = cv2.VideoWriter(output_path, fourcc, self.fps, (self.width, self.height))
+        out = cv2.VideoWriter(output_path, fourcc, self.fps, (self.width, self.height), isColor=False)
         
         # Generate random path
         points = self.generate_random_path()
@@ -204,19 +179,16 @@ class DrawingVideoGenerator:
         
         # Create frames
         for i in range(self.total_frames):
-            frame = self.create_smooth_grey_background()
+            frame = self.get_random_background()
             
             # Draw all lines up to current point, respecting the drawing mask
             if i > 0:
                 for j in range(1, i + 1):
                     if drawing_mask[j-1] and drawing_mask[j]:  # Only draw if both points are in drawing mode
-                        cv2.line(frame, 
-                                interpolated_points[j-1],
-                                interpolated_points[j],
-                                (0, 0, 0), 2)
+                        cv2.line(frame, interpolated_points[j-1], interpolated_points[j], 255, thickness=3)
             
             # Draw current cursor position
-            cv2.circle(frame, interpolated_points[i], 5, (255, 0, 0), -1)
+            #cv2.circle(frame, interpolated_points[i], 5, (255, 0, 0), -1)
             
             # Calculate and draw direction with look-ahead
             look_ahead_idx = min(i + self.look_ahead_frames, self.total_frames - 1)

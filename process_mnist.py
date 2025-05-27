@@ -1,6 +1,5 @@
 import numpy as np
 import cv2
-from noise import pnoise2
 import yaml
 import os
 from tqdm import tqdm
@@ -17,33 +16,21 @@ class MNISTProcessor:
         self.width = self.config['image']['width']
         self.height = self.config['image']['height']
         
-    def create_smooth_grey_background(self):
-        """Create a smooth grey background using Perlin noise."""
-        # Create a grid of coordinates
-        x = np.linspace(0, 1, self.width)
-        y = np.linspace(0, 1, self.height)
-        X, Y = np.meshgrid(x, y)
+        # Load pre-generated backgrounds
+        backgrounds_path = os.path.join(self.config['output']['backgrounds'], 'backgrounds.npy')
+        if not os.path.exists(backgrounds_path):
+            raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
+        self.backgrounds = np.load(backgrounds_path)
         
-        # Get parameters from config
-        bg_config = self.config['background']
-        scale = random.uniform(bg_config['scale']['min'], bg_config['scale']['max'])
-        octaves = random.randint(bg_config['octaves']['min'], bg_config['octaves']['max'])
-        persistence = random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
-        lacunarity = random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
+    def get_random_background(self):
+        """Get a random background from the pre-generated ones."""
+        idx = random.randint(0, len(self.backgrounds) - 1)
+        background = self.backgrounds[idx]
         
-        # Assuming X, Y are meshgrids of shape (height, width)
-        vectorized_pnoise2 = np.vectorize(lambda x, y: pnoise2(x * scale, y * scale, 
-                                                       octaves=octaves, 
-                                                       persistence=persistence, 
-                                                       lacunarity=lacunarity))
-
-        noise = vectorized_pnoise2(X, Y)
-        
-        # Map noise values to 0-255 range
-        grey = ((noise + 1) * 127.5).astype(np.uint8)
-        
-        # Create a 3-channel image with the same grey value in all channels
-        background = np.stack([grey, grey, grey], axis=-1)
+        # Convert to 3-channel image
+        background = np.stack([background, background, background], axis=-1)
+        # Scale to 0-255 range
+        background = (background * 255).astype(np.uint8)
         
         return background
 
@@ -59,20 +46,17 @@ class MNISTProcessor:
         scaled_image = cv2.resize(mnist_image, (self.width, self.height), 
                                 interpolation=cv2.INTER_LINEAR)
         
-        # Create background
-        background = self.create_smooth_grey_background()
+        # Get random background
+        background = self.get_random_background()
         
-        # Convert scaled image to 3 channels
-        if len(scaled_image.shape) == 2:
-            scaled_image = np.stack([scaled_image] * 3, axis=-1)
+        # Create a copy of the background to draw on
+        result = background.copy()
         
-        # Add the two images together
-        combined = scaled_image.astype(np.int32) + background.astype(np.int32)
-        
-        # Apply threshold (255 is the maximum value for uint8)
-        threshold = 255
-        result = np.clip(combined, 0, threshold).astype(np.uint8)
-        
+        # Draw the MNIST digit on the background
+        # We'll use a threshold to determine which pixels to draw
+        threshold = 128
+        mask = scaled_image > threshold
+        result[mask] = 255
         return result
 
     def process_dataset(self, dataset, name):
@@ -91,7 +75,7 @@ class MNISTProcessor:
             labels.append(label)
             
             # Save first 5 images as PNGs for inspection
-            if i < 5:
+            if i < 15:
                 sample_path = os.path.join(sample_dir, f'{name}_sample_{i}_label_{label}.png')
                 cv2.imwrite(sample_path, processed_image)
         
