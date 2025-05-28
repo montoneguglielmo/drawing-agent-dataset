@@ -3,6 +3,17 @@ import os
 import shutil
 import sys
 
+def get_confirmation():
+    print("\nWARNING: This operation will delete all generated data including:")
+    print("- MNIST dataset files")
+    print("- Generated videos")
+    print("- Comparison images")
+    print("- Background images")
+    print("- Configuration files")
+    print("\nThis operation cannot be undone!")
+    response = input("\nAre you sure you want to proceed? (yes/no): ").lower()
+    return response == 'yes'
+
 def clean_directories():
     print("Starting clean operation...")
     
@@ -46,4 +57,7 @@ def clean_directories():
             print('Error:', str(e))
 
 if __name__ == "__main__":
-    clean_directories() 
+    if get_confirmation():
+        clean_directories()
+    else:
+        print("Operation cancelled.") 
