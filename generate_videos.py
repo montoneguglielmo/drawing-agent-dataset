@@ -29,7 +29,8 @@ class DrawingVideoGenerator:
         self.show_compass = show_compass  # Whether to show the compass
         
         # Load pre-generated backgrounds
-        backgrounds_path = os.path.join(self.config['output']['backgrounds'], 'backgrounds.npy')
+        base_dir = self.config['output']['base_dir']
+        backgrounds_path = os.path.join(base_dir, 'backgrounds', 'backgrounds.npy')
         if not os.path.exists(backgrounds_path):
             raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
         self.backgrounds = np.load(backgrounds_path)
@@ -228,12 +229,13 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
-    # Get output directory and number of videos from config
-    output_dir = config['output']['videos']
-    num_videos = config['generation']['num_videos']
-    
-    # Create output directory if it doesn't exist
+    # Get output directory from config
+    base_dir = config['output']['base_dir']
+    output_dir = os.path.join(base_dir, 'videos')
     os.makedirs(output_dir, exist_ok=True)
+    
+    # Get background directory from config
+    background_dir = os.path.join(base_dir, 'backgrounds')
     
     # Initialize generator
     generator = DrawingVideoGenerator(
@@ -244,13 +246,13 @@ def main():
     )
     
     # Generate videos
-    print(f"Generating {num_videos} videos...")
-    for i in tqdm(range(num_videos)):
+    print(f"Generating {config['generation']['num_videos']} videos...")
+    for i in tqdm(range(config['generation']['num_videos'])):
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
         output_path = os.path.join(output_dir, f"drawing_{timestamp}_{i:04d}.mp4")
         generator.generate_video(output_path)
     
-    print(f"Generated {num_videos} videos in {output_dir}")
+    print(f"Generated {config['generation']['num_videos']} videos in {output_dir}")
 
 if __name__ == "__main__":
     main() 

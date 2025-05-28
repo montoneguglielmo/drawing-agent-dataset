@@ -19,12 +19,9 @@ background:
     min: 1.0
     max: 3.0
 
-# Output directories
+# Output directory
 output:
-  videos: "../datasets/drawing-agent-test/video"
-  mnist: "../datasets/drawing-agent-test/mnist"
-  backgrounds: "../datasets/drawing-agent-test/backgrounds"
-  comparisons: "../datasets/drawing-agent-test/comparisons"
+  base_dir: "../datasets/drawing-agent-test"
 
 # Generation parameters
 generation:
