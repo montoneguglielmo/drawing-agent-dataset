@@ -67,10 +67,11 @@ def create_comparison(video_frame, mnist_image, output_path):
 def main():
     config = load_config()
     
-    # Define paths
-    video_dir = config['output']['videos']
-    mnist_dir = os.path.join(config['output']['mnist'], 'samples')
-    output_dir = config['output']['comparisons']
+    # Define paths using base directory
+    base_dir = config['output']['base_dir']
+    video_dir = os.path.join(base_dir, 'videos')
+    mnist_dir = os.path.join(base_dir, 'mnist', 'samples')
+    output_dir = os.path.join(base_dir, 'comparisons')
     
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)

@@ -27,22 +27,28 @@ generate_mnist:
 compare_samples:
 	$(PYTHON) compare_samples.py
 
+# Copy config to dataset directory
+copy_config:
+	$(PYTHON) -c "import yaml; config = yaml.safe_load(open('config.yaml')); \
+		import shutil; \
+		import os; \
+		base_dir = config['output']['base_dir']; \
+		os.makedirs(base_dir, exist_ok=True); \
+		shutil.copy('config.yaml', os.path.join(base_dir, 'config.yaml'))"
+
 # Generate complete dataset
-generate_dataset: generate_backgrounds generate_mnist generate_videos compare_samples
+generate_dataset: copy_config generate_backgrounds generate_mnist generate_videos compare_samples create_video_index
+
+# Create video index
+create_video_index:
+	$(PYTHON) create_video_index.py
 
 # Clean generated files
 clean:
-	$(PYTHON) -c "import yaml; config = yaml.safe_load(open('config.yaml')); \
-		import shutil; \
-		shutil.rmtree(config['output']['mnist'], ignore_errors=True); \
-		shutil.rmtree(config['output']['videos'], ignore_errors=True); \
-		shutil.rmtree('comparisons', ignore_errors=True); \
-		import os; \
-		backgrounds_path = os.path.join(config['output']['backgrounds'], 'backgrounds.npy'); \
-		os.remove(backgrounds_path) if os.path.exists(backgrounds_path) else None"
+	$(PYTHON) clean.py
 
 # Clean everything including virtual environment
 clean-all: clean
 	rm -rf $(VENV_PATH)
 
-.PHONY: all venv generate_backgrounds generate_videos generate_mnist compare_samples generate_dataset clean clean-all 
+.PHONY: all venv generate_backgrounds generate_videos generate_mnist compare_samples generate_dataset create_video_index copy_config clean clean-all 

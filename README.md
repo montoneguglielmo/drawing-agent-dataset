@@ -53,12 +53,9 @@ background:
     min: 1.0
     max: 3.0
 
-# Output directories
+# Output directory
 output:
-  videos: "../datasets/drawing-agent-test/video"
-  mnist: "../datasets/drawing-agent-test/mnist"
-  backgrounds: "../datasets/drawing-agent-test/backgrounds"
-  comparisons: "../datasets/drawing-agent-test/comparisons"
+  base_dir: "../datasets/drawing-agent-test"
 
 # Generation parameters
 generation:
@@ -74,6 +71,14 @@ To generate the entire dataset (backgrounds, MNIST samples, videos, and comparis
 ```bash
 make generate_dataset
 ```
+
+This will:
+1. Copy the config file to the dataset directory
+2. Generate backgrounds
+3. Process MNIST data
+4. Generate videos
+5. Create comparisons
+6. Create the video index
 
 ### Individual Components
 You can also generate individual components:
@@ -98,6 +103,16 @@ make generate_videos
 make compare_samples
 ```
 
+- Create video index:
+```bash
+make create_video_index
+```
+
+- Copy config to dataset directory:
+```bash
+make copy_config
+```
+
 ### Cleaning Up
 To clean generated files:
 ```bash
@@ -115,6 +130,7 @@ make clean-all
 - `generate_videos.py`: Creates drawing videos with compass indicators
 - `process_mnist.py`: Processes MNIST dataset and combines with backgrounds
 - `compare_samples.py`: Creates comparison samples between videos and MNIST digits
+- `create_drawing_agent_index.py`: Creates an index file for the generated videos
 - `config.yaml`: Configuration file for all parameters
 - `Makefile`: Build automation and task management
 
@@ -123,6 +139,7 @@ make clean-all
 The generated dataset will be organized in the following structure:
 ```
 datasets/drawing-agent-test/
+├── config.yaml
 ├── backgrounds/
 │   └── backgrounds.npy
 ├── mnist/
@@ -131,8 +148,8 @@ datasets/drawing-agent-test/
 │   ├── train_labels.npy
 │   ├── test_images.npy
 │   └── test_labels.npy
-├── video/
-│   └── drawing_*.mp4
+├── videos/
+│   └── drawing_agent_index.csv
 └── comparisons/
     └── comparison_*.png
 ```

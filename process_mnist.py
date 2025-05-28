@@ -17,7 +17,7 @@ class MNISTProcessor:
         self.height = self.config['image']['height']
         
         # Load pre-generated backgrounds
-        backgrounds_path = os.path.join(self.config['output']['backgrounds'], 'backgrounds.npy')
+        backgrounds_path = os.path.join(self.config['output']['base_dir'], 'backgrounds', 'backgrounds.npy')
         if not os.path.exists(backgrounds_path):
             raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
         self.backgrounds = np.load(backgrounds_path)
@@ -55,7 +55,7 @@ class MNISTProcessor:
         # Draw the MNIST digit on the background
         # We'll use a threshold to determine which pixels to draw
         threshold = 128
-        mask = scaled_image > threshold
+        mask = scaled_image > threshold 
         result[mask] = 255
         return result
 
@@ -66,7 +66,8 @@ class MNISTProcessor:
         labels = []
         
         # Create directory for sample images using the mnist output path from config
-        sample_dir = os.path.join(self.config['output']['mnist'], 'samples')
+        mnist_dir = os.path.join(self.config['output']['base_dir'], 'mnist')
+        sample_dir = os.path.join(mnist_dir, 'samples')
         os.makedirs(sample_dir, exist_ok=True)
         
         for i, (image, label) in enumerate(tqdm(dataset, desc=f"Processing {name} images")):
@@ -90,7 +91,7 @@ def main():
     processor = MNISTProcessor()
     
     # Get output directory from config
-    output_dir = processor.config['output']['mnist']
+    output_dir = os.path.join(processor.config['output']['base_dir'], 'mnist')
     
     # Create output directory
     os.makedirs(output_dir, exist_ok=True)

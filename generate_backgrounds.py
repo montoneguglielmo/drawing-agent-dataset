@@ -49,7 +49,7 @@ def main():
     config = load_config()
     
     # Get output directory from config
-    output_dir = config['output']['backgrounds']
+    output_dir = os.path.join(config['output']['base_dir'], 'backgrounds')
     
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
