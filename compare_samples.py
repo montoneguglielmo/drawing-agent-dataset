@@ -36,19 +36,27 @@ def get_random_video_frame(video_dir):
     return frame
 
 def get_random_mnist_image(mnist_dir):
-    # Get a random MNIST image from either train or test directory
-    train_dir = os.path.join(mnist_dir, 'train_images')
-    test_dir = os.path.join(mnist_dir, 'test_images')
+    # Get a random MNIST image from train, val, or test directory
+    train_dir = os.path.join(mnist_dir, 'train')
+    val_dir = os.path.join(mnist_dir, 'val')
+    test_dir = os.path.join(mnist_dir, 'test')
     
-    # Randomly choose between train and test directories
-    chosen_dir = random.choice([train_dir, test_dir])
+    # Randomly choose between train, val, and test directories
+    chosen_dir = random.choice([train_dir, val_dir, test_dir])
     
-    # Get a random MNIST image
-    image_files = [f for f in os.listdir(chosen_dir) if f.endswith('.png')]
+    # Randomly choose a class directory
+    class_dirs = [d for d in os.listdir(chosen_dir) if d.startswith('class')]
+    if not class_dirs:
+        raise FileNotFoundError(f"No class directories found in {chosen_dir}")
+    
+    class_dir = os.path.join(chosen_dir, random.choice(class_dirs))
+    
+    # Get a random MNIST image from the chosen class directory
+    image_files = [f for f in os.listdir(class_dir) if f.endswith('.png')]
     if not image_files:
-        raise FileNotFoundError(f"No image files found in {chosen_dir}")
+        raise FileNotFoundError(f"No image files found in {class_dir}")
     
-    image_path = os.path.join(chosen_dir, random.choice(image_files))
+    image_path = os.path.join(class_dir, random.choice(image_files))
     image = Image.open(image_path)
     return np.array(image)
 
@@ -83,7 +91,7 @@ def main():
     # Create output directory if it doesn't exist
     os.makedirs(output_dir, exist_ok=True)
     
-    # Generate 5 comparisons
+    # Generate 10 comparisons
     for i in range(10):
         try:
             video_frame = get_random_video_frame(video_dir)
