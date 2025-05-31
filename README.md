@@ -143,9 +143,22 @@ datasets/drawing-agent-test/
 ├── backgrounds/
 │   └── backgrounds.npy
 ├── mnist/
-│   ├── samples/
+│   ├── train/
+│   │   ├── class0/
+│   │   ├── class1/
+│   │   └── ...
+│   ├── val/
+│   │   ├── class0/
+│   │   ├── class1/
+│   │   └── ...
+│   ├── test/
+│   │   ├── class0/
+│   │   ├── class1/
+│   │   └── ...
 │   ├── train_images.npy
 │   ├── train_labels.npy
+│   ├── val_images.npy
+│   ├── val_labels.npy
 │   ├── test_images.npy
 │   └── test_labels.npy
 ├── videos/
@@ -153,12 +166,3 @@ datasets/drawing-agent-test/
 └── comparisons/
     └── comparison_*.png
 ```
-
-## Features
-
-- Perlin noise background generation
-- Drawing videos with compass indicators showing direction
-- MNIST digit processing with background integration
-- Comparison samples for visual analysis
-- Configurable parameters through YAML
-- Automated build process with Makefile 
