@@ -36,12 +36,19 @@ def get_random_video_frame(video_dir):
     return frame
 
 def get_random_mnist_image(mnist_dir):
-    # Get a random MNIST image
-    image_files = [f for f in os.listdir(mnist_dir) if f.endswith(('.png', '.jpg', '.jpeg'))]
-    if not image_files:
-        raise FileNotFoundError("No image files found in the specified directory")
+    # Get a random MNIST image from either train or test directory
+    train_dir = os.path.join(mnist_dir, 'train_images')
+    test_dir = os.path.join(mnist_dir, 'test_images')
     
-    image_path = os.path.join(mnist_dir, random.choice(image_files))
+    # Randomly choose between train and test directories
+    chosen_dir = random.choice([train_dir, test_dir])
+    
+    # Get a random MNIST image
+    image_files = [f for f in os.listdir(chosen_dir) if f.endswith('.png')]
+    if not image_files:
+        raise FileNotFoundError(f"No image files found in {chosen_dir}")
+    
+    image_path = os.path.join(chosen_dir, random.choice(image_files))
     image = Image.open(image_path)
     return np.array(image)
 
@@ -70,7 +77,7 @@ def main():
     # Define paths using base directory
     base_dir = config['output']['base_dir']
     video_dir = os.path.join(base_dir, 'videos')
-    mnist_dir = os.path.join(base_dir, 'mnist', 'samples')
+    mnist_dir = os.path.join(base_dir, 'mnist')  # Updated to point to mnist root directory
     output_dir = os.path.join(base_dir, 'comparisons')
     
     # Create output directory if it doesn't exist

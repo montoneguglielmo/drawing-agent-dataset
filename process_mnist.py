@@ -65,20 +65,27 @@ class MNISTProcessor:
         images = []
         labels = []
         
-        # Create directory for sample images using the mnist output path from config
+        # Create directories for images
         mnist_dir = os.path.join(self.config['output']['base_dir'], 'mnist')
-        sample_dir = os.path.join(mnist_dir, 'samples')
-        os.makedirs(sample_dir, exist_ok=True)
+        train_dir = os.path.join(mnist_dir, 'train_images')
+        test_dir = os.path.join(mnist_dir, 'test_images')
+        
+        # Create directories if they don't exist
+        if name == "training":
+            os.makedirs(train_dir, exist_ok=True)
+            output_dir = train_dir
+        else:  # test
+            os.makedirs(test_dir, exist_ok=True)
+            output_dir = test_dir
         
         for i, (image, label) in enumerate(tqdm(dataset, desc=f"Processing {name} images")):
             processed_image = self.process_image(image)
             images.append(processed_image)
             labels.append(label)
             
-            # Save first 5 images as PNGs for inspection
-            if i < 15:
-                sample_path = os.path.join(sample_dir, f'{name}_sample_{i}_label_{label}.png')
-                cv2.imwrite(sample_path, processed_image)
+            # Save each image as PNG
+            image_path = os.path.join(output_dir, f'image_{i:05d}_label_{label}.png')
+            cv2.imwrite(image_path, processed_image)
         
         # Convert to numpy arrays
         images = np.array(images)
