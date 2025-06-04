@@ -21,12 +21,13 @@ class DrawingVideoGenerator:
         self.fps = fps
         self.duration = duration
         self.total_frames = fps * duration
-        self.compass_size = 40  # Size of the compass in pixels
-        self.compass_margin = 10  # Margin from the edge
+        self.compass_size = min(self.width, self.height) // 3  # 1/3rd of the smaller dimension
+        self.compass_margin = min(self.width, self.height) // 20  # 1/20th of the smaller dimension
         self.look_ahead_frames = 5  # Number of frames to look ahead for direction
         self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
         self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
         self.show_compass = self.config.get('video', {}).get('show_compass', True)  # Get from config, default to True
+        self.fixed_background = self.config.get('video', {}).get('fixed_background', False)  # Get from config, default to False
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -35,6 +36,8 @@ class DrawingVideoGenerator:
             raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
         self.backgrounds = np.load(backgrounds_path)
         
+        
+        
     def get_random_background(self):
         """Get a random background from the pre-generated ones."""
         idx = random.randint(0, len(self.backgrounds) - 1)
@@ -42,7 +45,6 @@ class DrawingVideoGenerator:
         
         # Scale to 0-255 range and keep as 2D array
         background = (background * 255).astype(np.uint8)
-        
         return background
 
     def create_white_background(self):
@@ -55,8 +57,8 @@ class DrawingVideoGenerator:
         x = self.width - self.compass_size - self.compass_margin
         y = self.compass_margin
         
-        # Draw status indicator box
-        status_box_size = 15
+        # Calculate status box size based on image dimensions
+        status_box_size = min(self.width, self.height) // 10  # 1/10th of the smaller dimension
         status_x = x - status_box_size - 5  # 5 pixels margin from compass
         status_y = y
         status_color = 255 if is_drawing else 128  # White for drawing, Grey for pause
@@ -70,10 +72,10 @@ class DrawingVideoGenerator:
         radius = self.compass_size//2 - 5
         
         # Draw N, S, E, W markers
-        cv2.putText(frame, "N", (center[0]-5, y+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        cv2.putText(frame, "S", (center[0]-5, y+self.compass_size-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        cv2.putText(frame, "E", (x+self.compass_size-10, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        cv2.putText(frame, "W", (x+5, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        #cv2.putText(frame, "N", (center[0]-5, y+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        #cv2.putText(frame, "S", (center[0]-5, y+self.compass_size-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        #cv2.putText(frame, "E", (x+self.compass_size-10, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
+        #cv2.putText(frame, "W", (x+5, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
         
         # Draw direction arrow
         if direction is not None:
@@ -178,9 +180,17 @@ class DrawingVideoGenerator:
         # Generate drawing mask
         drawing_mask = self.generate_drawing_mask(self.total_frames)
         
+        # If fixed background is enabled, select one background at initialization
+        if self.fixed_background:
+            idx = random.randint(0, len(self.backgrounds) - 1)
+            self.current_background = (self.backgrounds[idx] * 255).astype(np.uint8)
+        
         # Create frames
         for i in range(self.total_frames):
-            frame = self.get_random_background()
+            if self.fixed_background:
+                frame = self.current_background.copy()
+            else:
+                frame = self.get_random_background()
             
             # Draw all lines up to current point, respecting the drawing mask
             if i > 0:
