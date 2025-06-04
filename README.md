@@ -3,6 +3,7 @@
 This project generates synthetic drawing videos and MNIST dataset samples for training drawing agents. It creates a dataset that includes:
 - Perlin noise backgrounds
 - Drawing videos with compass indicators
+- Masked versions of drawing videos
 - MNIST digit samples with backgrounds
 - Comparison samples between videos and MNIST digits
 
@@ -60,6 +61,19 @@ output:
 # Generation parameters
 generation:
   num_videos: 15
+
+# Mask parameters for masked videos
+mask:
+  aspect_ratio:
+    - 0.75
+    - 1.5
+  num_blocks: 8
+  spatial_scale:
+    - 0.15
+    - 0.15
+  temporal_scale:
+    - 1.0
+    - 1.0
 ```
 
 ## Usage
@@ -67,7 +81,7 @@ generation:
 The project provides several Makefile targets for different operations:
 
 ### Generate Complete Dataset
-To generate the entire dataset (backgrounds, MNIST samples, videos, and comparisons):
+To generate the entire dataset (backgrounds, MNIST samples, videos, masked videos, and comparisons):
 ```bash
 make generate_dataset
 ```
@@ -77,8 +91,9 @@ This will:
 2. Generate backgrounds
 3. Process MNIST data
 4. Generate videos
-5. Create comparisons
-6. Create the video index
+5. Generate masked videos
+6. Create comparisons
+7. Create the video index
 
 ### Individual Components
 You can also generate individual components:
@@ -96,6 +111,11 @@ make generate_mnist
 - Generate drawing videos:
 ```bash
 make generate_videos
+```
+
+- Generate masked videos:
+```bash
+make generate_masked_videos
 ```
 
 - Generate comparison samples:
@@ -128,6 +148,7 @@ make clean-all
 
 - `generate_backgrounds.py`: Generates Perlin noise backgrounds
 - `generate_videos.py`: Creates drawing videos with compass indicators
+- `generate_masked_videos.py`: Creates masked versions of drawing videos
 - `process_mnist.py`: Processes MNIST dataset and combines with backgrounds
 - `compare_samples.py`: Creates comparison samples between videos and MNIST digits
 - `create_drawing_agent_index.py`: Creates an index file for the generated videos
@@ -163,6 +184,8 @@ datasets/drawing-agent-test/
 │   └── test_labels.npy
 ├── videos/
 │   └── drawing_agent_index.csv
+├── masked_videos_examples/
+│   └── masked_*.mp4
 └── comparisons/
     └── comparison_*.png
 ```

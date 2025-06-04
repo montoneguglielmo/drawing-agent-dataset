@@ -1,11 +1,10 @@
 # Image dimensions
 image:
-  width: 56
-  height: 56
-
+  width: 50
+  height: 50
 # Background generation parameters
 background:
-  num_backgrounds: 1000  # Number of backgrounds to generate
+  num_backgrounds: 10  # Number of backgrounds to generate
   scale:
     min: 2.0
     max: 20.0
@@ -25,4 +24,22 @@ output:
 
 # Generation parameters
 generation:
-  num_videos: 200 
+  num_videos: 100
+
+# Video parameters
+video:
+  show_compass: true  # Whether to show the compass in the video
+  fixed_background: true  # Set to true to use the same background throughout the video
+
+# Mask parameters for masked videos
+mask:
+  aspect_ratio:
+    - 0.75
+    - 1.5
+  num_blocks: 8
+  spatial_scale:
+    - 0.15
+    - 0.15
+  temporal_scale:
+    - 1.0
+    - 1.0 

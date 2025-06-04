@@ -9,6 +9,7 @@ def get_confirmation():
     print("- Generated videos")
     print("- Comparison images")
     print("- Background images")
+    print("- Masked videos")
     print("- Configuration files")
     print("\nThis operation cannot be undone!")
     response = input("\nAre you sure you want to proceed? (yes/no): ").lower()
@@ -25,7 +26,7 @@ def clean_directories():
     print('Base directory:', base_dir)
     
     # Remove all subdirectories and their contents
-    for subdir in ['mnist', 'videos', 'comparisons', 'backgrounds']:
+    for subdir in ['mnist', 'videos', 'comparisons', 'backgrounds', 'masked_videos_examples']:
         dir_path = os.path.join(base_dir, subdir)
         print('Checking directory:', dir_path)
         if os.path.exists(dir_path):
