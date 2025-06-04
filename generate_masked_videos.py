@@ -51,7 +51,7 @@ class MaskedVideoGenerator:
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         
         
-        out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'XVID'), fps, (width, height), isColor=False)
+        out = cv2.VideoWriter(output_path, cv2.VideoWriter_fourcc(*'mp4v'), fps, (width, height), isColor=False)
         if not out.isOpened():
             print(f"Error creating output video {output_path}")
             cap.release()

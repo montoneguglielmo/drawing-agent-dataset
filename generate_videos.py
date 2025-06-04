@@ -11,7 +11,7 @@ from noise import pnoise2  # Add this import for Perlin noise
 import yaml  # Add yaml import
 
 class DrawingVideoGenerator:
-    def __init__(self, config_path='config.yaml', fps=30, duration=3, show_compass=True):
+    def __init__(self, config_path='config.yaml', fps=30, duration=3):
         # Load configuration
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -26,7 +26,7 @@ class DrawingVideoGenerator:
         self.look_ahead_frames = 5  # Number of frames to look ahead for direction
         self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
         self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
-        self.show_compass = show_compass  # Whether to show the compass
+        self.show_compass = self.config.get('video', {}).get('show_compass', True)  # Get from config, default to True
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -221,7 +221,6 @@ def main():
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     parser.add_argument('--fps', type=int, default=30, help='Frames per second')
     parser.add_argument('--duration', type=int, default=3, help='Video duration in seconds')
-    parser.add_argument('--show_compass', action='store_true', help='Enable the compass in the video')
     
     args = parser.parse_args()
     
@@ -241,8 +240,7 @@ def main():
     generator = DrawingVideoGenerator(
         config_path=args.config,
         fps=args.fps,
-        duration=args.duration,
-        show_compass=args.show_compass
+        duration=args.duration
     )
     
     # Generate videos

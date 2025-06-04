@@ -27,6 +27,10 @@ output:
 generation:
   num_videos: 100
 
+# Video parameters
+video:
+  show_compass: true  # Whether to show the compass in the video
+
 # Mask parameters for masked videos
 mask:
   aspect_ratio:
