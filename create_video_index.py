@@ -20,8 +20,6 @@ def create_video_index(dataset_path, output_file):
     # Create CSV file
     with open(output_file, 'w', newline='') as f:
         writer = csv.writer(f, delimiter=' ')
-        writer.writerow(['path', 'label'])  # Header
-        
         # Write each video with a random label
         for video_path in video_files:
             # Use absolute path
@@ -29,7 +27,6 @@ def create_video_index(dataset_path, output_file):
             # Assign random label (0-999)
             label = random.randint(0, 999)
             writer.writerow([abs_path, label])
-    
     print(f"Created video index with {len(video_files)} videos at {output_file}")
 
 def load_config(config_path):
