@@ -1,11 +1,13 @@
 # Drawing Agent Dataset Generator
 
-This project generates synthetic drawing videos and MNIST dataset samples for training drawing agents. It creates a dataset that includes:
+This project generates synthetic drawing videos, a MNIST dataset and a dataset of images of curves and streight lines. 
+It creates a 3 datasets that includes:
 - Perlin noise backgrounds
 - Drawing videos with compass indicators
-- Masked versions of drawing videos
+- Masked versions of drawing videos (to visualize VJepa masking strategy)
 - MNIST digit samples with backgrounds
-- Comparison samples between videos and MNIST digits
+- Comparison samples between videos and MNIST digits (to make sure drawing in videos are close in style to MNIST digits)
+- Curve and straight line image classification dataset
 
 ## Prerequisites
 
@@ -74,6 +76,11 @@ mask:
   temporal_scale:
     - 1.0
     - 1.0
+
+# Curve lines dataset parameters
+curve_lines_dataset:
+  num_samples_per_class: 1000  # Number of samples per class (straight lines and curves)
+  num_translations_per_shape: 8  # Number of translated versions per base shape
 ```
 
 ## Usage
@@ -90,10 +97,11 @@ This will:
 1. Copy the config file to the dataset directory
 2. Generate backgrounds
 3. Process MNIST data
-4. Generate videos
-5. Generate masked videos
-6. Create comparisons
-7. Create the video index
+4. Generate curve and straight line dataset
+5. Generate videos
+6. Generate masked videos
+7. Create comparisons
+8. Create the video index
 
 ### Individual Components
 You can also generate individual components:
@@ -116,6 +124,11 @@ make generate_videos
 - Generate masked videos:
 ```bash
 make generate_masked_videos
+```
+
+- Generate curve and straight line dataset:
+```bash
+make generate_curve_lines
 ```
 
 - Generate comparison samples:
@@ -149,6 +162,7 @@ make clean-all
 - `generate_backgrounds.py`: Generates Perlin noise backgrounds
 - `generate_videos.py`: Creates drawing videos with compass indicators
 - `generate_masked_videos.py`: Creates masked versions of drawing videos
+- `generate_curve_lines.py`: Creates curve and straight line classification dataset
 - `process_mnist.py`: Processes MNIST dataset and combines with backgrounds
 - `compare_samples.py`: Creates comparison samples between videos and MNIST digits
 - `create_drawing_agent_index.py`: Creates an index file for the generated videos
@@ -186,6 +200,16 @@ datasets/drawing-agent-test/
 │   └── drawing_agent_index.csv
 ├── masked_videos_examples/
 │   └── masked_*.mp4
+├── curve_lines_dataset/
+│   ├── train/
+│   │   ├── class0/  # Straight lines
+│   │   └── class1/  # Curves
+│   ├── val/
+│   │   ├── class0/  # Straight lines
+│   │   └── class1/  # Curves
+│   └── test/
+│       ├── class0/  # Straight lines
+│       └── class1/  # Curves
 └── comparisons/
     └── comparison_*.png
 ```

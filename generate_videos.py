@@ -26,7 +26,7 @@ class DrawingVideoGenerator:
         self.look_ahead_frames = 5  # Number of frames to look ahead for direction
         self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
         self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
-        self.show_compass = self.config.get('video', {}).get('show_compass', True)  # Get from config, default to True
+        self.show_compass_percentage = self.config.get('video', {}).get('show_compass', 1.0)  # Get from config, default to 1.0 (100%)
         self.fixed_background = self.config.get('video', {}).get('fixed_background', False)  # Get from config, default to False
         
         # Load pre-generated backgrounds
@@ -35,9 +35,11 @@ class DrawingVideoGenerator:
         if not os.path.exists(backgrounds_path):
             raise FileNotFoundError(f"Backgrounds file not found at {backgrounds_path}. Please run generate_backgrounds.py first.")
         self.backgrounds = np.load(backgrounds_path)
-        
-        
-        
+    
+    def should_show_compass_for_video(self):
+        """Decide whether this video should show the compass based on the percentage."""
+        return random.random() < self.show_compass_percentage
+
     def get_random_background(self):
         """Get a random background from the pre-generated ones."""
         idx = random.randint(0, len(self.backgrounds) - 1)
@@ -180,6 +182,9 @@ class DrawingVideoGenerator:
         # Generate drawing mask
         drawing_mask = self.generate_drawing_mask(self.total_frames)
         
+        # Decide whether this video should show the compass (once per video)
+        show_compass_for_this_video = self.should_show_compass_for_video()
+        
         # If fixed background is enabled, select one background at initialization
         if self.fixed_background:
             idx = random.randint(0, len(self.backgrounds) - 1)
@@ -219,7 +224,7 @@ class DrawingVideoGenerator:
                 # Use current state for last frames
                 is_drawing = bool(drawing_mask[i])
             
-            if self.show_compass:
+            if show_compass_for_this_video:
                 self.draw_compass(frame, direction, is_drawing)
             
             out.write(frame)

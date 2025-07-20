@@ -60,9 +60,34 @@ def get_random_mnist_image(mnist_dir):
     image = Image.open(image_path)
     return np.array(image)
 
-def create_comparison(video_frame, mnist_image, output_path):
-    # Create a figure with two subplots side by side
-    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+def get_random_curve_line_image(curve_lines_dir):
+    # Get a random curve/line image from train, val, or test directory
+    train_dir = os.path.join(curve_lines_dir, 'train')
+    val_dir = os.path.join(curve_lines_dir, 'val')
+    test_dir = os.path.join(curve_lines_dir, 'test')
+    
+    # Randomly choose between train, val, and test directories
+    chosen_dir = random.choice([train_dir, val_dir, test_dir])
+    
+    # Randomly choose a class directory (class0 for straight lines, class1 for curves)
+    class_dirs = [d for d in os.listdir(chosen_dir) if d.startswith('class')]
+    if not class_dirs:
+        raise FileNotFoundError(f"No class directories found in {chosen_dir}")
+    
+    class_dir = os.path.join(chosen_dir, random.choice(class_dirs))
+    
+    # Get a random curve/line image from the chosen class directory
+    image_files = [f for f in os.listdir(class_dir) if f.endswith('.png')]
+    if not image_files:
+        raise FileNotFoundError(f"No image files found in {class_dir}")
+    
+    image_path = os.path.join(class_dir, random.choice(image_files))
+    image = Image.open(image_path)
+    return np.array(image)
+
+def create_comparison(video_frame, mnist_image, curve_line_image, output_path):
+    # Create a figure with three subplots side by side
+    fig, (ax1, ax2, ax3) = plt.subplots(1, 3, figsize=(18, 6))
     
     # Display video frame
     ax1.imshow(video_frame)
@@ -73,6 +98,11 @@ def create_comparison(video_frame, mnist_image, output_path):
     ax2.imshow(mnist_image, cmap='gray')
     ax2.set_title('Random MNIST Image')
     ax2.axis('off')
+    
+    # Display curve/line image
+    ax3.imshow(curve_line_image, cmap='gray')
+    ax3.set_title('Random Curve/Line Image')
+    ax3.axis('off')
     
     # Adjust layout and save
     plt.tight_layout()
@@ -86,6 +116,7 @@ def main():
     base_dir = config['output']['base_dir']
     video_dir = os.path.join(base_dir, 'videos')
     mnist_dir = os.path.join(base_dir, 'mnist')  # Updated to point to mnist root directory
+    curve_lines_dir = os.path.join(base_dir, 'curve_lines_dataset')
     output_dir = os.path.join(base_dir, 'comparisons')
     
     # Create output directory if it doesn't exist
@@ -96,9 +127,10 @@ def main():
         try:
             video_frame = get_random_video_frame(video_dir)
             mnist_image = get_random_mnist_image(mnist_dir)
+            curve_line_image = get_random_curve_line_image(curve_lines_dir)
             
             output_path = os.path.join(output_dir, f'comparison_{i+1}.png')
-            create_comparison(video_frame, mnist_image, output_path)
+            create_comparison(video_frame, mnist_image, curve_line_image, output_path)
             print(f"Created comparison {i+1}")
             
         except Exception as e:

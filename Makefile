@@ -27,6 +27,10 @@ generate_masked_videos: generate_videos
 generate_mnist:
 	$(PYTHON) process_mnist.py
 
+# Generate curve lines dataset
+generate_curve_lines: generate_backgrounds
+	$(PYTHON) generate_curve_lines.py
+
 # Compare video frames with MNIST samples
 compare_samples:
 	$(PYTHON) compare_samples.py
@@ -41,7 +45,7 @@ copy_config:
 		shutil.copy('config.yaml', os.path.join(base_dir, 'config.yaml'))"
 
 # Generate complete dataset
-generate_dataset: copy_config generate_backgrounds generate_mnist generate_videos generate_masked_videos compare_samples create_video_index
+generate_dataset: copy_config generate_backgrounds generate_mnist generate_curve_lines generate_videos generate_masked_videos compare_samples create_video_index
 
 # Create video index
 create_video_index:
@@ -55,4 +59,4 @@ clean:
 clean-all: clean
 	rm -rf $(VENV_PATH)
 
-.PHONY: all venv generate_backgrounds generate_videos generate_masked_videos generate_mnist compare_samples generate_dataset create_video_index copy_config clean clean-all 
+.PHONY: all venv generate_backgrounds generate_videos generate_masked_videos generate_mnist generate_curve_lines compare_samples generate_dataset create_video_index copy_config clean clean-all 
