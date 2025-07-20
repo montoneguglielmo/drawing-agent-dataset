@@ -31,6 +31,11 @@ video:
   show_compass: 0.5  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
   fixed_background: true  # Set to true to use the same background throughout the video
 
+# Curve lines dataset parameters
+curve_lines_dataset:
+  num_samples_per_class: 1000  # Number of samples per class (straight lines and curves)
+  num_translations_per_shape: 8  # Number of translated versions per base shape
+
 # Mask parameters for masked videos
 mask:
   aspect_ratio:
