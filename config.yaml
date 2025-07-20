@@ -24,7 +24,7 @@ output:
 
 # Generation parameters
 generation:
-  num_videos: 6400
+  num_videos: 100
 
 # Video parameters
 video:
@@ -33,7 +33,7 @@ video:
 
 # Curve lines dataset parameters
 curve_lines_dataset:
-  num_samples_per_class: 1000  # Number of samples per class (straight lines and curves)
+  num_samples_per_class: 100  # Number of samples per class (straight lines and curves)
   num_translations_per_shape: 8  # Number of translated versions per base shape
 
 # Mask parameters for masked videos
