@@ -5,6 +5,8 @@ image:
 # Background generation parameters
 background:
   num_backgrounds: 10  # Number of backgrounds to generate
+  include_black: true  # Whether to include completely black backgrounds
+  black_probability: 1.0  # Probability of generating a black background (0.0 to 1.0)
   scale:
     min: 2.0
     max: 20.0
@@ -20,20 +22,20 @@ background:
 
 # Output directory
 output:
-  base_dir: "../datasets/action-drawing-agent"
+  base_dir: "../datasets/action-drawing-agent/videos_with_action/3200-videos"
 
 # Generation parameters
 generation:
-  num_videos: 100
+  num_videos: 3200
 
 # Video parameters
 video:
-  show_compass: 0.5  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
+  show_compass: 0.7  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
   fixed_background: true  # Set to true to use the same background throughout the video
 
 # Curve lines dataset parameters
 curve_lines_dataset:
-  num_samples_per_class: 100  # Number of samples per class (straight lines and curves)
+  num_samples_per_class: 50000  # Number of samples per class (straight lines and curves)
   num_translations_per_shape: 8  # Number of translated versions per base shape
 
 # Mask parameters for masked videos
