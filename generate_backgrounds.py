@@ -32,14 +32,20 @@ def generate_backgrounds(config):
     
     backgrounds = []
     for _ in tqdm(range(num_backgrounds), desc="Generating backgrounds"):
-        # Randomize parameters within config ranges
-        scale = np.random.uniform(bg_config['scale']['min'], bg_config['scale']['max'])
-        octaves = int(np.random.uniform(bg_config['octaves']['min'], bg_config['octaves']['max']))
-        persistence = np.random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
-        lacunarity = np.random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
+        # Check if we should generate a black background
+        if bg_config.get('include_black', False) and np.random.random() < bg_config.get('black_probability', 0.0):
+            # Generate completely black background
+            background = np.zeros((height, width))
+        else:
+            # Randomize parameters within config ranges
+            scale = np.random.uniform(bg_config['scale']['min'], bg_config['scale']['max'])
+            octaves = int(np.random.uniform(bg_config['octaves']['min'], bg_config['octaves']['max']))
+            persistence = np.random.uniform(bg_config['persistence']['min'], bg_config['persistence']['max'])
+            lacunarity = np.random.uniform(bg_config['lacunarity']['min'], bg_config['lacunarity']['max'])
+            
+            # Generate background
+            background = generate_perlin_noise(width, height, scale, octaves, persistence, lacunarity)
         
-        # Generate background
-        background = generate_perlin_noise(width, height, scale, octaves, persistence, lacunarity)
         backgrounds.append(background)
     
     return np.array(backgrounds)
