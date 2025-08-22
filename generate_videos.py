@@ -102,25 +102,45 @@ class DrawingVideoGenerator:
         margin_x = int(self.width * 0.1)
         margin_y = int(self.height * 0.1)
         
-        # Initial point within margins
-        current_x = random.randint(margin_x, self.width - margin_x)
-        current_y = random.randint(margin_y, self.height - margin_y)
+        # Define a single boundary rectangle that contains both compass and status rectangle
+        # This covers the entire top-right area where UI elements are placed
+        ui_boundary_left = self.width - self.compass_size - self.compass_margin - (min(self.width, self.height) // 10) - 5
+        ui_boundary_top = 0
+        ui_boundary_right = self.width
+        ui_boundary_bottom = self.compass_margin + self.compass_size
         
-        for _ in range(num_points):
-            # Generate next point with some randomness
+        # Initial point within margins, avoiding UI boundary
+        while True:
+            current_x = random.randint(margin_x, self.width - margin_x)
+            current_y = random.randint(margin_y, self.height - margin_y)
+            
+            # Check if point is outside the UI boundary rectangle
+            if not (ui_boundary_left <= current_x <= ui_boundary_right and ui_boundary_top <= current_y <= ui_boundary_bottom):
+                break
+        
+        points.append((current_x, current_y))
+        
+        # Generate subsequent points with max_step logic, avoiding UI boundary
+        for _ in range(num_points - 1):
             # Use 20% of dimensions for maximum step size
             max_step_x = int(self.width * 0.2)
             max_step_y = int(self.height * 0.2)
-            next_x = current_x + random.randint(-max_step_x, max_step_x)
-            next_y = current_y + random.randint(-max_step_y, max_step_y)
             
-            # Keep points within margins
-            next_x = max(margin_x, min(self.width - margin_x, next_x))
-            next_y = max(margin_y, min(self.height - margin_y, next_y))
-            
-            points.append((next_x, next_y))
-            current_x, current_y = next_x, next_y
-            
+            while True:
+                # Generate next point with some randomness
+                next_x = current_x + random.randint(-max_step_x, max_step_x)
+                next_y = current_y + random.randint(-max_step_y, max_step_y)
+                
+                # Keep points within margins
+                next_x = max(margin_x, min(self.width - margin_x, next_x))
+                next_y = max(margin_y, min(self.height - margin_y, next_y))
+                
+                # Check if next point is outside the UI boundary rectangle
+                if not (ui_boundary_left <= next_x <= ui_boundary_right and ui_boundary_top <= next_y <= ui_boundary_bottom):
+                    points.append((next_x, next_y))
+                    current_x, current_y = next_x, next_y
+                    break
+        
         return points
     
     def generate_drawing_mask(self, num_frames):
