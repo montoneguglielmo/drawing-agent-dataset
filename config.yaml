@@ -22,16 +22,18 @@ background:
 
 # Output directory
 output:
-  base_dir: "../datasets/action-drawing-agent/videos_with_action/3200-videos"
+  base_dir: "../datasets/action-drawing-agent/videos_with_action/12800-videos"
 
 # Generation parameters
 generation:
-  num_videos: 3200
+  num_videos: 12800
 
 # Video parameters
 video:
   show_compass: 0.7  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
   fixed_background: true  # Set to true to use the same background throughout the video
+  compass_margin: 10  # Top margin for compass display in pixels
+  pause_probability: 0.5  # Probability of having a pause in a video (0.0 to 1.0, 0.0 disables pauses)
 
 # Curve lines dataset parameters
 curve_lines_dataset:
