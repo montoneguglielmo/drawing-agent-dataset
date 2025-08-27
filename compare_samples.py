@@ -109,6 +109,72 @@ def create_comparison(video_frame, mnist_image, curve_line_image, output_path):
     plt.savefig(output_path)
     plt.close()
 
+def get_frames_with_interval(video_dir, frame_interval=4, num_frames=4):
+    """
+    Extract frames from a random video with specified interval between them.
+    For example, with frame_interval=4 and num_frames=4, we get frames: 4, 8, 12, 16
+    """
+    # Get a random video file
+    video_files = [f for f in os.listdir(video_dir) if f.endswith('.mp4')]
+    if not video_files:
+        raise FileNotFoundError("No video files found in the specified directory")
+    
+    video_path = os.path.join(video_dir, random.choice(video_files))
+    cap = cv2.VideoCapture(video_path)
+    
+    # Get total number of frames
+    total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+    
+    # Calculate frame positions
+    # Start from a random frame to get more variety
+    max_start_frame = total_frames - (num_frames * frame_interval)
+    if max_start_frame <= 0:
+        # If video is too short, start from frame 1
+        start_frame = 1
+    else:
+        start_frame = random.randint(1, max_start_frame)
+    
+    frame_positions = [start_frame + i * frame_interval for i in range(num_frames)]
+    
+    # Check if we have enough frames
+    if max(frame_positions) >= total_frames:
+        # Adjust if video is too short
+        max_possible = total_frames - 1
+        frame_positions = [max(1, max_possible - (num_frames - 1 - i) * frame_interval) for i in range(num_frames)]
+    
+    frames = []
+    for frame_pos in frame_positions:
+        cap.set(cv2.CAP_PROP_POS_FRAMES, frame_pos)
+        ret, frame = cap.read()
+        if ret:
+            # Convert BGR to RGB
+            frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            frames.append(frame)
+        else:
+            raise ValueError(f"Failed to read frame {frame_pos} from video")
+    
+    cap.release()
+    return frames, frame_positions
+
+def create_frame_interval_comparison(frames, frame_positions, output_path):
+    """Create a comparison image showing 4 frames with intervals"""
+    # Create a figure with four subplots in a 2x2 grid
+    fig, axes = plt.subplots(2, 2, figsize=(16, 12))
+    axes = axes.ravel()  # Flatten the 2D array for easier indexing
+    
+    for i, (frame, frame_pos) in enumerate(zip(frames, frame_positions)):
+        axes[i].imshow(frame)
+        axes[i].set_title(f'Frame {frame_pos}')
+        axes[i].axis('off')
+    
+    # Add overall title
+    fig.suptitle(f'Video Frames with {frame_positions[1] - frame_positions[0]} Frame Intervals', fontsize=16)
+    
+    # Adjust layout and save
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150, bbox_inches='tight')
+    plt.close()
+
 def main():
     config = load_config()
     
@@ -118,11 +184,26 @@ def main():
     mnist_dir = os.path.join(base_dir, 'mnist')  # Updated to point to mnist root directory
     curve_lines_dir = os.path.join(base_dir, 'curve_lines_dataset')
     output_dir = os.path.join(base_dir, 'comparisons')
+    frame_interval_dir = os.path.join(base_dir, 'comparisons/frame_intervals')
     
-    # Create output directory if it doesn't exist
+    # Create output directories if they don't exist
     os.makedirs(output_dir, exist_ok=True)
+    os.makedirs(frame_interval_dir, exist_ok=True)
     
-    # Generate 10 comparisons
+    # Generate frame interval comparisons
+    print("Generating frame interval comparisons...")
+    for i in range(5):  # Generate 5 frame interval comparisons
+        try:
+            frames, frame_positions = get_frames_with_interval(video_dir, frame_interval=4, num_frames=4)
+            output_path = os.path.join(frame_interval_dir, f'frame_interval_{i+1}.png')
+            create_frame_interval_comparison(frames, frame_positions, output_path)
+            print(f"Created frame interval comparison {i+1} with frames: {frame_positions}")
+            
+        except Exception as e:
+            print(f"Error creating frame interval comparison {i+1}: {str(e)}")
+    
+    # Generate original comparisons
+    print("\nGenerating original comparisons...")
     for i in range(10):
         try:
             video_frame = get_random_video_frame(video_dir)

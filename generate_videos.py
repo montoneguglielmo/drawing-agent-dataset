@@ -21,13 +21,21 @@ class DrawingVideoGenerator:
         self.fps = fps
         self.duration = duration
         self.total_frames = fps * duration
-        self.compass_size = min(self.width, self.height) // 3  # 1/3rd of the smaller dimension
-        self.compass_margin = min(self.width, self.height) // 20  # 1/20th of the smaller dimension
-        self.look_ahead_frames = 5  # Number of frames to look ahead for direction
-        self.min_pause_frames = int(fps * 0.5)  # Minimum pause duration (0.5 seconds)
-        self.max_pause_frames = int(fps * 1.5)  # Maximum pause duration (1.5 seconds)
+        self.compass_size = min(self.width, self.height) // 5  # 5 windows across the width
         self.show_compass_percentage = self.config.get('video', {}).get('show_compass', 1.0)  # Get from config, default to 1.0 (100%)
         self.fixed_background = self.config.get('video', {}).get('fixed_background', False)  # Get from config, default to False
+        self.compass_margin = self.config.get('video', {}).get('compass_margin', 10)  # Get from config, default to 10
+        
+        # Load drawing mask configuration from video section
+        self.pause_probability = self.config.get('video', {}).get('pause_probability', 0.5)
+        
+        # Fixed pause duration values (0.5 to 1.5 seconds)
+        self.min_pause_seconds = 0.5
+        self.max_pause_seconds = 1.5
+        
+        # Calculate pause frames from seconds
+        self.min_pause_frames = int(fps * self.min_pause_seconds)
+        self.max_pause_frames = int(fps * self.max_pause_seconds)
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -53,38 +61,46 @@ class DrawingVideoGenerator:
         """Create a white background image."""
         return np.ones((self.height, self.width), dtype=np.uint8) * 255
     
-    def draw_compass(self, frame, direction, is_drawing=True):
-        """Draw a compass in the top right corner showing the current drawing direction."""
-        # Calculate compass position
-        x = self.width - self.compass_size - self.compass_margin
-        y = self.compass_margin
+    def draw_compass(self, frame, directions, is_drawing=True):
+        """Draw 4 compasses and a status box across the upper edge of the image.
         
-        # Calculate status box size based on image dimensions
-        status_box_size = min(self.width, self.height) // 10  # 1/10th of the smaller dimension
-        status_x = x - status_box_size - 5  # 5 pixels margin from compass
-        status_y = y
+        Args:
+            frame: The frame to draw on
+            directions: List of 4 directions in degrees (0 is North, 90 is East)
+            is_drawing: Boolean indicating if currently drawing
+        """
+        # Calculate window sizes and spacing using compass attributes
+        total_width = self.width
+        window_width = self.compass_size
+        window_height = self.compass_size
+
+        start_x = self.compass_size//2
+        
+        # Draw 4 compasses
+        for i in range(4):
+            if i < len(directions) and directions[i] is not None:
+                # Calculate position for this compass
+                x = start_x + i * window_width
+                y = self.compass_size//2  # Use compass_margin for top margin
+                
+                radius = self.compass_size//2
+                
+                # Draw direction arrow
+                angle = math.radians(directions[i])
+                end_x = x+ int(radius * math.sin(angle))
+                end_y = y - int(radius * math.cos(angle))
+                cv2.arrowedLine(frame, (x, y), (end_x, end_y), 255, 2)
+                
+        
+        # Draw status box (5th window)
+        status_x = start_x + 4 * window_width
         status_color = 255 if is_drawing else 128  # White for drawing, Grey for pause
+                
+        # Draw status box
         cv2.rectangle(frame, 
-                     (status_x, status_y),
-                     (status_x + status_box_size, status_y + status_box_size),
+                     (status_x, 0),
+                     (status_x + window_width, window_height),
                      status_color, -1)  # -1 for filled rectangle
-        
-        # Draw cardinal points
-        center = (x + self.compass_size//2, y + self.compass_size//2)
-        radius = self.compass_size//2 - 5
-        
-        # Draw N, S, E, W markers
-        #cv2.putText(frame, "N", (center[0]-5, y+10), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        #cv2.putText(frame, "S", (center[0]-5, y+self.compass_size-5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        #cv2.putText(frame, "E", (x+self.compass_size-10, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        #cv2.putText(frame, "W", (x+5, center[1]+5), cv2.FONT_HERSHEY_SIMPLEX, 0.5, 255, 1)
-        
-        # Draw direction arrow
-        if direction is not None:
-            angle = math.radians(direction)
-            end_x = center[0] + int(radius * math.sin(angle))
-            end_y = center[1] - int(radius * math.cos(angle))
-            cv2.arrowedLine(frame, center, (end_x, end_y), 255, 2)
     
     def calculate_direction(self, point1, point2):
         """Calculate the direction between two points in degrees (0 is North, 90 is East)."""
@@ -95,51 +111,40 @@ class DrawingVideoGenerator:
         angle = math.degrees(math.atan2(dx, -dy))
         return angle if angle >= 0 else angle + 360
     
-    def generate_random_path(self, num_points=10):
+    def calculate_multiple_directions(self, interpolated_points, current_frame, drawing_mask):
+        """Calculate 4 different directions based on current and future path points."""
+        directions = []
+        
+        # Look-ahead frames for different compasses
+        look_ahead_frames = [4, 6, 8, 10]  # Different look-ahead distances
+        
+        for look_ahead in look_ahead_frames:
+            look_ahead_idx = min(current_frame + look_ahead, self.total_frames - 1)
+            direction = self.calculate_direction(
+                interpolated_points[current_frame],
+                interpolated_points[look_ahead_idx]
+                )
+            directions.append(direction)
+        
+        return directions
+    
+    def generate_random_path(self, num_points=None):
         """Generate a random path for the drawing."""
         points = []
+        
+        # Randomly select number of points from the specified list
+        if num_points is None:
+            n_points = [4, 5, 6]
+            num_points = random.choice(n_points)
+        
         # Calculate margins as 10% of dimensions
-        margin_x = int(self.width * 0.1)
-        margin_y = int(self.height * 0.1)
+        margin_x = int(self.width * 0.15)
+        margin_y = int(self.height * 0.15)
         
-        # Define a single boundary rectangle that contains both compass and status rectangle
-        # This covers the entire top-right area where UI elements are placed
-        ui_boundary_left = self.width - self.compass_size - self.compass_margin - (min(self.width, self.height) // 10) - 5
-        ui_boundary_top = 0
-        ui_boundary_right = self.width
-        ui_boundary_bottom = self.compass_margin + self.compass_size
-        
-        # Initial point within margins, avoiding UI boundary
-        while True:
-            current_x = random.randint(margin_x, self.width - margin_x)
-            current_y = random.randint(margin_y, self.height - margin_y)
-            
-            # Check if point is outside the UI boundary rectangle
-            if not (ui_boundary_left <= current_x <= ui_boundary_right and ui_boundary_top <= current_y <= ui_boundary_bottom):
-                break
-        
-        points.append((current_x, current_y))
-        
-        # Generate subsequent points with max_step logic, avoiding UI boundary
-        for _ in range(num_points - 1):
-            # Use 20% of dimensions for maximum step size
-            max_step_x = int(self.width * 0.2)
-            max_step_y = int(self.height * 0.2)
-            
-            while True:
-                # Generate next point with some randomness
-                next_x = current_x + random.randint(-max_step_x, max_step_x)
-                next_y = current_y + random.randint(-max_step_y, max_step_y)
-                
-                # Keep points within margins
-                next_x = max(margin_x, min(self.width - margin_x, next_x))
-                next_y = max(margin_y, min(self.height - margin_y, next_y))
-                
-                # Check if next point is outside the UI boundary rectangle
-                if not (ui_boundary_left <= next_x <= ui_boundary_right and ui_boundary_top <= next_y <= ui_boundary_bottom):
-                    points.append((next_x, next_y))
-                    current_x, current_y = next_x, next_y
-                    break
+        # Generate all points randomly, avoiding compass boundary
+        x_coords = [random.randint(margin_x, self.width - margin_x) for _ in range(num_points)]
+        y_coords = [random.randint(self.compass_size + margin_y, self.height - margin_y) for _ in range(num_points)]
+        points = list(zip(x_coords, y_coords))
         
         return points
     
@@ -148,10 +153,10 @@ class DrawingVideoGenerator:
         # Initialize mask with all ones (drawing)
         mask = np.ones(num_frames, dtype=int)
         
-        # 50% chance to have a pause
-        if random.random() < 0.5:
+        # Check if this video should have a pause based on configuration
+        if random.random() < self.pause_probability:
             # Randomly select start of pause
-            pause_start = random.randint(0, num_frames - self.min_pause_frames)
+            pause_start = random.randint(0, num_frames - self.max_pause_frames)
             
             # Randomly select pause duration
             pause_duration = random.randint(self.min_pause_frames, self.max_pause_frames)
@@ -223,29 +228,13 @@ class DrawingVideoGenerator:
                     if drawing_mask[j-1] and drawing_mask[j]:  # Only draw if both points are in drawing mode
                         cv2.line(frame, interpolated_points[j-1], interpolated_points[j], 255, thickness=3)
             
-            # Draw current cursor position
-            #cv2.circle(frame, interpolated_points[i], 5, (255, 0, 0), -1)
-            
-            # Calculate and draw direction with look-ahead
-            look_ahead_idx = min(i + self.look_ahead_frames, self.total_frames - 1)
-            if look_ahead_idx < self.total_frames - 1:
-                direction = self.calculate_direction(
-                    interpolated_points[look_ahead_idx],
-                    interpolated_points[look_ahead_idx + 1]
-                )
-                # Use look-ahead for drawing state
-                is_drawing = bool(drawing_mask[look_ahead_idx])
-            else:
-                # For the last frame, use the previous direction
-                direction = self.calculate_direction(
-                    interpolated_points[look_ahead_idx - 1],
-                    interpolated_points[look_ahead_idx]
-                )
-                # Use current state for last frames
-                is_drawing = bool(drawing_mask[i])
+            # Determine drawing state for current frame
+            is_drawing = bool(drawing_mask[i])
             
             if show_compass_for_this_video:
-                self.draw_compass(frame, direction, is_drawing)
+                # Calculate multiple directions for the 4 compasses
+                multiple_directions = self.calculate_multiple_directions(interpolated_points, i, drawing_mask)
+                self.draw_compass(frame, multiple_directions, is_drawing)
             
             out.write(frame)
         
