@@ -22,7 +22,6 @@ class DrawingVideoGenerator:
         self.duration = duration
         self.total_frames = fps * duration
         self.compass_size = min(self.width, self.height) // 5  # 5 windows across the width
-        self.compass_margin = min(self.width, self.height) // 20  # 1/20th of the smaller dimension
         self.show_compass_percentage = self.config.get('video', {}).get('show_compass', 1.0)  # Get from config, default to 1.0 (100%)
         self.fixed_background = self.config.get('video', {}).get('fixed_background', False)  # Get from config, default to False
         self.compass_margin = self.config.get('video', {}).get('compass_margin', 10)  # Get from config, default to 10
@@ -95,22 +94,13 @@ class DrawingVideoGenerator:
         
         # Draw status box (5th window)
         status_x = start_x + 4 * window_width
-        status_y = self.compass_margin  # Use compass_margin for top margin
         status_color = 255 if is_drawing else 128  # White for drawing, Grey for pause
-        
+                
         # Draw status box
         cv2.rectangle(frame, 
-                     (status_x, status_y),
-                     (status_x + window_width, status_y + window_height),
+                     (status_x, 0),
+                     (status_x + window_width, window_height),
                      status_color, -1)  # -1 for filled rectangle
-        
-        # Add status text
-        status_text = "DRAW" if is_drawing else "PAUSE"
-        text_size = cv2.getTextSize(status_text, cv2.FONT_HERSHEY_SIMPLEX, 0.6, 2)[0]
-        text_x = status_x + (window_width - text_size[0]) // 2
-        text_y = status_y + (window_height + text_size[1]) // 2
-        cv2.putText(frame, status_text, (text_x, text_y), 
-                   cv2.FONT_HERSHEY_SIMPLEX, 0.6, 0, 2)  # Black text
     
     def calculate_direction(self, point1, point2):
         """Calculate the direction between two points in degrees (0 is North, 90 is East)."""
@@ -129,7 +119,7 @@ class DrawingVideoGenerator:
         look_ahead_frames = [4, 6, 8, 10]  # Different look-ahead distances
         
         for look_ahead in look_ahead_frames:
-            look_ahead_idx = min(current_frame + look_ahead, self.total_frames)
+            look_ahead_idx = min(current_frame + look_ahead, self.total_frames - 1)
             direction = self.calculate_direction(
                 interpolated_points[current_frame],
                 interpolated_points[look_ahead_idx]
@@ -148,14 +138,12 @@ class DrawingVideoGenerator:
             num_points = random.choice(n_points)
         
         # Calculate margins as 10% of dimensions
-        margin_x = int(self.width * 0.1)
-        margin_y = int(self.height * 0.1)
-        
-        compass_boundary_bottom = self.compass_size
+        margin_x = int(self.width * 0.15)
+        margin_y = int(self.height * 0.15)
         
         # Generate all points randomly, avoiding compass boundary
         x_coords = [random.randint(margin_x, self.width - margin_x) for _ in range(num_points)]
-        y_coords = [random.randint(compass_boundary_bottom, self.height - margin_y) for _ in range(num_points)]
+        y_coords = [random.randint(self.compass_size + margin_y, self.height - margin_y) for _ in range(num_points)]
         points = list(zip(x_coords, y_coords))
         
         return points
