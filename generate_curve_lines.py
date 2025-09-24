@@ -45,12 +45,15 @@ class CurveLineGenerator:
         # Calculate margins as 10% of dimensions
         margin_x = int(self.width * 0.1)
         margin_y = int(self.height * 0.1)
-        
+    
+        # Modify the upper margin to take into account the compass size in the videos        
+        uppper_margin_y = min(self.width, self.height) // 5  # 5 windows across the width
+
         # Generate two random points within margins
         x1 = random.randint(margin_x, self.width - margin_x)
-        y1 = random.randint(margin_y, self.height - margin_y)
+        y1 = random.randint(uppper_margin_y, self.height - margin_y)
         x2 = random.randint(margin_x, self.width - margin_x)
-        y2 = random.randint(margin_y, self.height - margin_y)
+        y2 = random.randint(uppper_margin_y, self.height - margin_y)
         
         # Calculate midpoint for the third point
         x3 = (x1 + x2) // 2
