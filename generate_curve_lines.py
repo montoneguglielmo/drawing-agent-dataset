@@ -17,6 +17,9 @@ class CurveLineGenerator:
         
         self.width = self.config['image']['width']
         self.height = self.config['image']['height']
+        self.margin_x = int(self.width * 0.15)
+        self.margin_y = int(self.height * 0.15)
+        self.upper_margin_y = min(self.width, self.height) // 5  # Compass space
         
         # Use provided curve_config or fall back to first curve config in config file
         if curve_config is None:
@@ -42,63 +45,94 @@ class CurveLineGenerator:
     
     def generate_straight_line_points(self):
         """Generate 3 points that form a straight line."""
-        # Calculate margins as 10% of dimensions
-        margin_x = int(self.width * 0.1)
-        margin_y = int(self.height * 0.1)
+        # Use larger margins for initial generation to ensure translation space
+        # Final bounds will be enforced during translation
+        initial_margin_x = self.margin_x + 3
+        initial_margin_y = self.margin_y + 3
     
         # Modify the upper margin to take into account the compass size in the videos        
-        uppper_margin_y = min(self.width, self.height) // 5  # 5 windows across the width
+        upper_margin_y = self.upper_margin_y
 
-        # Generate two random points within margins
-        x1 = random.randint(margin_x, self.width - margin_x)
-        y1 = random.randint(uppper_margin_y, self.height - margin_y)
-        x2 = random.randint(margin_x, self.width - margin_x)
-        y2 = random.randint(uppper_margin_y, self.height - margin_y)
+        # Define minimum distance between start and end points
+        # Use 20% of the smaller dimension as minimum distance
+        min_distance = min(self.width, self.height) * 0.2
+        max_attempts = 50  # Prevent infinite loops
         
-        # Calculate midpoint for the third point
-        x3 = (x1 + x2) // 2
-        y3 = (y1 + y2) // 2
+        for attempt in range(max_attempts):
+            # Generate two random points within smaller margins
+            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
+            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
+            x2 = random.randint(initial_margin_x, self.width - initial_margin_x)
+            y2 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
+            
+            # Check if points are far enough apart
+            distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
+            if distance >= min_distance:
+                break
         
-        # Add small random perturbation to make it slightly curved (but still mostly straight)
-        # This ensures the classifier has to learn to distinguish between truly straight and curved lines
-        perturbation = random.randint(-2, 2)
-        x3 += perturbation
-        y3 += perturbation
+        # If we couldn't find suitable points after max_attempts, use the last generated points
+        # This should rarely happen with reasonable min_distanc
         
-        # Ensure points stay within bounds
-        x3 = max(margin_x, min(self.width - margin_x, x3))
-        y3 = max(margin_y, min(self.height - margin_y, y3))
-        
-        return [(x1, y1), (x2, y2), (x3, y3)]
+        return [(x1, y1), (x2, y2)]
     
     def generate_curve_points(self):
         """Generate 3 points that form a curve."""
-        # Calculate margins as 10% of dimensions
-        margin_x = int(self.width * 0.1)
-        margin_y = int(self.height * 0.1)
+        # Use larger margins for initial generation to ensure translation space
+        # Final bounds will be enforced during translation
+        initial_margin_x = self.margin_x + 3
+        initial_margin_y = self.margin_y + 3
+    
+        # Modify the upper margin to take into account the compass size in the videos        
+        upper_margin_y = self.upper_margin_y
+
+        # Define minimum distance between start and end points
+        # Use 20% of the smaller dimension as minimum distance
+        min_distance = min(self.width, self.height) * 0.2
+        max_attempts = 50  # Prevent infinite loops
         
-        # Generate three points that will form a curve
-        # Start and end points
-        x1 = random.randint(margin_x, self.width - margin_x)
-        y1 = random.randint(margin_y, self.height - margin_y)
-        x3 = random.randint(margin_x, self.width - margin_x)
-        y3 = random.randint(margin_y, self.height - margin_y)
+        for attempt in range(max_attempts):
+            # Generate start and end points that will form a curve
+            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
+            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
+            x3 = random.randint(initial_margin_x, self.width - initial_margin_x)
+            y3 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
+            
+            # Check if points are far enough apart
+            distance = math.sqrt((x3 - x1)**2 + (y3 - y1)**2)
+            if distance >= min_distance:
+                break
+        
+        # If we couldn't find suitable points after max_attempts, use the last generated points
+        # This should rarely happen with reasonable min_distance
         
         # Middle point that creates a curve
         # Position it away from the straight line between x1,y1 and x3,y3
         mid_x = (x1 + x3) // 2
         mid_y = (y1 + y3) // 2
         
-        # Add significant offset to create a curve
-        offset_x = random.randint(-int(self.width * 0.15), int(self.width * 0.15))
-        offset_y = random.randint(-int(self.height * 0.15), int(self.height * 0.15))
+        # Add significant offset to create a curve (using appropriate offset for initial generation)
+        # Ensure offset is not too close to zero by using a minimum offset threshold
+        min_offset_x = int(self.width * 0.05)  # Minimum 5% of width
+        min_offset_y = int(self.height * 0.05)  # Minimum 5% of height
+        max_offset_x = int(self.width * 0.15)
+        max_offset_y = int(self.height * 0.15)
+        
+        # Generate offset with minimum threshold
+        offset_x = random.randint(-max_offset_x, max_offset_x)
+        offset_y = random.randint(-max_offset_y, max_offset_y)
+        
+        # Ensure offset is not too close to zero
+        if abs(offset_x) < min_offset_x:
+            offset_x = min_offset_x if offset_x >= 0 else -min_offset_x
+        if abs(offset_y) < min_offset_y:
+            offset_y = min_offset_y if offset_y >= 0 else -min_offset_y
         
         x2 = mid_x + offset_x
         y2 = mid_y + offset_y
         
-        # Ensure points stay within bounds
-        x2 = max(margin_x, min(self.width - margin_x, x2))
-        y2 = max(margin_y, min(self.height - margin_y, y2))
+        # Ensure points stay within initial bounds
+        x2 = max(initial_margin_x, min(self.width - initial_margin_x, x2))
+        y2 = max(upper_margin_y + initial_margin_y, min(self.height - initial_margin_y, y2))
         
         return [(x1, y1), (x2, y2), (x3, y3)]
     
@@ -116,7 +150,7 @@ class CurveLineGenerator:
         t = np.linspace(0, 1, len(points))
         
         # Use linear interpolation for 3 points, cubic for more points
-        if len(points) == 3:
+        if len(points) <= 3:
             fx = interp1d(t, x_coords, kind='linear', bounds_error=False, fill_value=(x_coords[0], x_coords[-1]))
             fy = interp1d(t, y_coords, kind='linear', bounds_error=False, fill_value=(y_coords[0], y_coords[-1]))
         else:
@@ -150,9 +184,10 @@ class CurveLineGenerator:
         """Generate translated versions of the same shape."""
         translated_versions = []
         
-        # Calculate margins as 10% of dimensions
-        margin_x = int(self.width * 0.1)
-        margin_y = int(self.height * 0.1)
+        # Calculate margins as 15% of dimensions
+        margin_x = self.margin_x
+        margin_y = self.margin_y
+        upper_margin_y = self.upper_margin_y
         
         # Calculate the bounding box of the original shape
         points_array = np.array(points)
@@ -166,11 +201,14 @@ class CurveLineGenerator:
         shape_height = max_y - min_y
         
         # Calculate maximum translation range to keep shape within bounds
+        # For x: use regular margins
         max_translate_x = self.width - margin_x - max_x
         min_translate_x = margin_x - min_x
-        max_translate_y = self.height - margin_y - max_y
-        min_translate_y = margin_y - min_y
         
+        # For y: use compass space + regular margin as lower bound
+        max_translate_y = self.height - margin_y - max_y
+        min_translate_y = upper_margin_y + margin_y - min_y
+                
         # Generate translations
         for i in range(num_translations):
             # Generate random translation within bounds
