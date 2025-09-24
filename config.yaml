@@ -22,11 +22,11 @@ background:
 
 # Output directory
 output:
-  base_dir: "../datasets/action-drawing-agent/multiple_compass/videos_with_action/9600-videos"
+  base_dir: "../datasets/test"
 
 # Generation parameters
 generation:
-  num_videos: 9600
+  num_videos: 30
 
 # Video parameters
 video:

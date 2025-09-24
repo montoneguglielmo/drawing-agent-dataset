@@ -23,9 +23,8 @@ class DrawingVideoGenerator:
         self.total_frames = fps * duration
         self.compass_size = min(self.width, self.height) // 5  # 5 windows across the width
         
-        # Use provided video_config or fall back to first video config in config file
-        if video_config is None:
-            video_config = self.config.get('video', [{}])[0] if isinstance(self.config.get('video'), list) else self.config.get('video', {})
+        # Always use video config from config file
+        video_config = self.config.get('video', [{}])[0] if isinstance(self.config.get('video'), list) else self.config.get('video', {})
         
         self.show_compass_percentage = video_config.get('show_compass', 1.0)  # Get from video config, default to 1.0 (100%)
         self.fixed_background = video_config.get('fixed_background', False)  # Get from video config, default to False
@@ -277,12 +276,11 @@ def main():
               f"fixed_background={video_config.get('fixed_background', False)}, "
               f"pause_probability={video_config.get('pause_probability', 0.5)}")
         
-        # Initialize generator with specific video config
+        # Initialize generator (will use video config from config file)
         generator = DrawingVideoGenerator(
             config_path=args.config,
             fps=args.fps,
-            duration=args.duration,
-            video_config=video_config
+            duration=args.duration
         )
         
         # Generate videos for this configuration
