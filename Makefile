@@ -3,9 +3,6 @@ VENV_PATH := venv
 PYTHON := $(VENV_PATH)/bin/python
 PIP := $(VENV_PATH)/bin/pip
 
-# Default target
-all: venv generate_videos process_mnist
-
 # Create and setup virtual environment
 venv:
 	python3 -m venv $(VENV_PATH)
@@ -45,18 +42,11 @@ copy_config:
 		shutil.copy('config.yaml', os.path.join(base_dir, 'config.yaml'))"
 
 # Generate complete dataset
-generate_dataset: copy_config generate_backgrounds generate_mnist generate_curve_lines generate_videos generate_masked_videos compare_samples create_video_index
+generate_dataset: venv copy_config generate_backgrounds generate_curve_lines generate_videos generate_masked_videos compare_samples create_video_index
 
 # Create video index
 create_video_index:
 	$(PYTHON) create_video_index.py
 
-# Clean generated files
-clean:
-	$(PYTHON) clean.py
 
-# Clean everything including virtual environment
-clean-all: clean
-	rm -rf $(VENV_PATH)
-
-.PHONY: all venv generate_backgrounds generate_videos generate_masked_videos generate_mnist generate_curve_lines compare_samples generate_dataset create_video_index copy_config clean clean-all 
+.PHONY: venv generate_backgrounds generate_videos generate_masked_videos generate_mnist generate_curve_lines compare_samples generate_dataset create_video_index copy_config

@@ -22,12 +22,16 @@ class DrawingVideoGenerator:
         self.duration = duration
         self.total_frames = fps * duration
         self.compass_size = min(self.width, self.height) // 5  # 5 windows across the width
-        self.show_compass_percentage = self.config.get('video', {}).get('show_compass', 1.0)  # Get from config, default to 1.0 (100%)
-        self.fixed_background = self.config.get('video', {}).get('fixed_background', False)  # Get from config, default to False
-        self.compass_margin = self.config.get('video', {}).get('compass_margin', 10)  # Get from config, default to 10
+        
+        # Always use video config from config file
+        video_config = self.config.get('video', [{}])[0] if isinstance(self.config.get('video'), list) else self.config.get('video', {})
+        
+        self.show_compass_percentage = video_config.get('show_compass', 1.0)  # Get from video config, default to 1.0 (100%)
+        self.fixed_background = video_config.get('fixed_background', False)  # Get from video config, default to False
+        self.compass_margin = video_config.get('compass_margin', 10)  # Get from video config, default to 10
         
         # Load drawing mask configuration from video section
-        self.pause_probability = self.config.get('video', {}).get('pause_probability', 0.5)
+        self.pause_probability = video_config.get('pause_probability', 0.5)
         
         # Fixed pause duration values (0.5 to 1.5 seconds)
         self.min_pause_seconds = 0.5
@@ -254,27 +258,43 @@ def main():
     
     # Get output directory from config
     base_dir = config['output']['base_dir']
-    output_dir = os.path.join(base_dir, 'videos')
-    os.makedirs(output_dir, exist_ok=True)
     
-    # Get background directory from config
-    background_dir = os.path.join(base_dir, 'backgrounds')
+    # Get video configurations
+    video_configs = config.get('video', [])
+    if not isinstance(video_configs, list):
+        video_configs = [video_configs]
     
-    # Initialize generator
-    generator = DrawingVideoGenerator(
-        config_path=args.config,
-        fps=args.fps,
-        duration=args.duration
-    )
+    # Generate videos for each configuration
+    total_videos_generated = 0
+    for video_config in video_configs:
+        folder_name = video_config.get('folder_name', 'videos')
+        output_dir = os.path.join(base_dir, folder_name)
+        os.makedirs(output_dir, exist_ok=True)
+        
+        print(f"\nGenerating videos for folder: {folder_name}")
+        print(f"Configuration: show_compass={video_config.get('show_compass', 1.0)}, "
+              f"fixed_background={video_config.get('fixed_background', False)}, "
+              f"pause_probability={video_config.get('pause_probability', 0.5)}")
+        
+        # Initialize generator (will use video config from config file)
+        generator = DrawingVideoGenerator(
+            config_path=args.config,
+            fps=args.fps,
+            duration=args.duration
+        )
+        
+        # Generate videos for this configuration
+        num_videos = config['generation']['num_videos']
+        print(f"Generating {num_videos} videos...")
+        for i in tqdm(range(num_videos)):
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            output_path = os.path.join(output_dir, f"drawing_{timestamp}_{i:04d}.mp4")
+            generator.generate_video(output_path)
+        
+        print(f"Generated {num_videos} videos in {output_dir}")
+        total_videos_generated += num_videos
     
-    # Generate videos
-    print(f"Generating {config['generation']['num_videos']} videos...")
-    for i in tqdm(range(config['generation']['num_videos'])):
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        output_path = os.path.join(output_dir, f"drawing_{timestamp}_{i:04d}.mp4")
-        generator.generate_video(output_path)
-    
-    print(f"Generated {config['generation']['num_videos']} videos in {output_dir}")
+    print(f"\nTotal videos generated: {total_videos_generated}")
 
 if __name__ == "__main__":
     main() 

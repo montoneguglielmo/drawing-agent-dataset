@@ -109,6 +109,25 @@ def create_comparison(video_frame, mnist_image, curve_line_image, output_path):
     plt.savefig(output_path)
     plt.close()
 
+def create_video_curve_comparison(video_frame, curve_line_image, output_path):
+    # Create a figure with two subplots side by side
+    fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
+    
+    # Display video frame
+    ax1.imshow(video_frame)
+    ax1.set_title('Random Video Frame')
+    ax1.axis('off')
+    
+    # Display curve/line image
+    ax2.imshow(curve_line_image, cmap='gray')
+    ax2.set_title('Random Curve/Line Image')
+    ax2.axis('off')
+    
+    # Adjust layout and save
+    plt.tight_layout()
+    plt.savefig(output_path)
+    plt.close()
+
 def get_frames_with_interval(video_dir, frame_interval=4, num_frames=4):
     """
     Extract frames from a random video with specified interval between them.
@@ -180,11 +199,45 @@ def main():
     
     # Define paths using base directory
     base_dir = config['output']['base_dir']
-    video_dir = os.path.join(base_dir, 'videos')
+    
+    # Get video directories from config
+    video_configs = config['video']
+    video_dirs = []
+    for video_config in video_configs:
+        video_folder = video_config['folder_name']
+        video_dir = os.path.join(base_dir, video_folder)
+        if os.path.exists(video_dir):
+            video_dirs.append(video_dir)
+    
+    if not video_dirs:
+        raise FileNotFoundError("No video directories found. Please check your config and ensure videos have been generated.")
+    
+    # Use the first available video directory for frame interval comparisons
+    primary_video_dir = video_dirs[0]
+    
+    # Get curve lines directory from config
+    curve_lines_configs = config['curve_lines_dataset']
+    curve_lines_dirs = []
+    for curve_config in curve_lines_configs:
+        curve_folder = curve_config['folder_name']
+        curve_dir = os.path.join(base_dir, curve_folder)
+        if os.path.exists(curve_dir):
+            curve_lines_dirs.append(curve_dir)
+    
+    if not curve_lines_dirs:
+        raise FileNotFoundError("No curve lines directories found. Please check your config and ensure curve lines dataset has been generated.")
+    
+    # Use the first available curve lines directory
+    primary_curve_lines_dir = curve_lines_dirs[0]
+    
     mnist_dir = os.path.join(base_dir, 'mnist')  # Updated to point to mnist root directory
-    curve_lines_dir = os.path.join(base_dir, 'curve_lines_dataset')
     output_dir = os.path.join(base_dir, 'comparisons')
     frame_interval_dir = os.path.join(base_dir, 'comparisons/frame_intervals')
+    
+    # Check if MNIST directory exists
+    mnist_available = os.path.exists(mnist_dir)
+    if not mnist_available:
+        print("MNIST directory not found. Will only generate comparisons between video frames and curve lines.")
     
     # Create output directories if they don't exist
     os.makedirs(output_dir, exist_ok=True)
@@ -194,7 +247,7 @@ def main():
     print("Generating frame interval comparisons...")
     for i in range(5):  # Generate 5 frame interval comparisons
         try:
-            frames, frame_positions = get_frames_with_interval(video_dir, frame_interval=4, num_frames=4)
+            frames, frame_positions = get_frames_with_interval(primary_video_dir, frame_interval=4, num_frames=4)
             output_path = os.path.join(frame_interval_dir, f'frame_interval_{i+1}.png')
             create_frame_interval_comparison(frames, frame_positions, output_path)
             print(f"Created frame interval comparison {i+1} with frames: {frame_positions}")
@@ -206,13 +259,20 @@ def main():
     print("\nGenerating original comparisons...")
     for i in range(10):
         try:
-            video_frame = get_random_video_frame(video_dir)
-            mnist_image = get_random_mnist_image(mnist_dir)
-            curve_line_image = get_random_curve_line_image(curve_lines_dir)
+            video_frame = get_random_video_frame(primary_video_dir)
+            curve_line_image = get_random_curve_line_image(primary_curve_lines_dir)
             
             output_path = os.path.join(output_dir, f'comparison_{i+1}.png')
-            create_comparison(video_frame, mnist_image, curve_line_image, output_path)
-            print(f"Created comparison {i+1}")
+            
+            if mnist_available:
+                # Generate comparison with MNIST, video frames, and curve lines
+                mnist_image = get_random_mnist_image(mnist_dir)
+                create_comparison(video_frame, mnist_image, curve_line_image, output_path)
+                print(f"Created comparison {i+1} (with MNIST)")
+            else:
+                # Generate comparison with only video frames and curve lines
+                create_video_curve_comparison(video_frame, curve_line_image, output_path)
+                print(f"Created comparison {i+1} (video + curve lines only)")
             
         except Exception as e:
             print(f"Error creating comparison {i+1}: {str(e)}")

@@ -16,7 +16,14 @@ class MaskedVideoGenerator:
         
         self.width = self.config['image']['width']
         self.height = self.config['image']['height']
-        self.mask_config = self.config['mask']
+        
+        # Default mask parameters
+        self.mask_config = {
+            'aspect_ratio': [0.75, 1.5],
+            'num_blocks': 8,
+            'spatial_scale': [0.15, 0.15],
+            'temporal_scale': [1.0, 1.0]
+        }
         
     def generate_mask(self, frame_shape):
         """Generate a random mask for a single frame."""
@@ -110,14 +117,35 @@ def main():
         config = yaml.safe_load(f)
 
     base_dir = config['output']['base_dir']
-    input_dir = args.input_dir or os.path.join(base_dir, 'videos')
     output_dir = args.output_dir or os.path.join(base_dir, 'masked_videos_examples')
     os.makedirs(output_dir, exist_ok=True)
 
-    video_files = glob.glob(os.path.join(input_dir, '*.mp4'))
-    if not video_files:
-        print(f"No video files found in {input_dir}")
-        return
+    # Determine input directory: command line arg > config input_dir > video folders from config
+    input_dir = args.input_dir or config['output'].get('input_dir')
+    
+    if input_dir:
+        # Use specified input directory
+        video_files = glob.glob(os.path.join(input_dir, '*.mp4'))
+        if not video_files:
+            print(f"No video files found in {input_dir}")
+            return
+        print(f"Using input directory: {input_dir}")
+    else:
+        # Search in all video folders defined in config
+        video_files = []
+        for video_config in config['video']:
+            folder_name = video_config['folder_name']
+            folder_path = os.path.join(base_dir, folder_name)
+            if os.path.exists(folder_path):
+                folder_videos = glob.glob(os.path.join(folder_path, '*.mp4'))
+                video_files.extend(folder_videos)
+                print(f"Found {len(folder_videos)} videos in {folder_name}")
+            else:
+                print(f"Warning: Video folder {folder_path} does not exist")
+        
+        if not video_files:
+            print(f"No video files found in any video folders")
+            return
 
     selected_videos = random.sample(video_files, min(args.num_videos, len(video_files)))
     generator = MaskedVideoGenerator(config_path=args.config)

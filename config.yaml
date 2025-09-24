@@ -1,7 +1,7 @@
 # Image dimensions
 image:
-  width: 54
-  height: 54
+  width: 56
+  height: 56
 # Background generation parameters
 background:
   num_backgrounds: 10  # Number of backgrounds to generate
@@ -22,32 +22,27 @@ background:
 
 # Output directory
 output:
-  base_dir: "../datasets/action-drawing-agent/videos_with_action/test"
+  base_dir: "../datasets/test"
 
 # Generation parameters
 generation:
-  num_videos: 100
+  num_videos: 30
 
 # Video parameters
 video:
-  show_compass: 0.7  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
-  fixed_background: true  # Set to true to use the same background throughout the video
-  pause_probability: 0.0  # Probability of having a pause in a video (0.0 to 1.0, 0.0 disables pauses)
+  - folder_name: "videos_with_action"
+    show_compass: 0.8  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
+    fixed_background: true  # Set to true to use the same background throughout the video 
+    pause_probability: 0.0  # Probability of having a pause in a video (0.0 to 1.0, 0.0 disables pauses)
+  - folder_name: "videos_no_action"
+    show_compass: 0.2  # Percentage of videos that will have the compass displayed (0.0 to 1.0)
+    fixed_background: true  # Set to true to use the same background throughout the video
+    pause_probability: 0.0  # Probability of having a pause in a video (0.0 to 1.0, 0.0 disables pauses)
 
 # Curve lines dataset parameters
 curve_lines_dataset:
-  num_samples_per_class: 50000  # Number of samples per class (straight lines and curves)
-  num_translations_per_shape: 8  # Number of translated versions per base shape
-
-# Mask parameters for masked videos
-mask:
-  aspect_ratio:
-    - 0.75
-    - 1.5
-  num_blocks: 8
-  spatial_scale:
-    - 0.15
-    - 0.15
-  temporal_scale:
-    - 1.0
-    - 1.0
+  - folder_name: "curve_lines_dataset_200"
+    num_samples_per_class: 200  # Number of samples per class (straight lines and curves)
+  - folder_name: "curve_lines_dataset_400"
+    num_samples_per_class: 400  # Number of samples per class (straight lines and curves)
+    num_translations_per_shape: 8  # Number of translated versions per base shape
