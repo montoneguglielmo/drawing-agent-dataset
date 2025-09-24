@@ -10,13 +10,19 @@ from scipy.interpolate import interp1d
 import yaml
 
 class CurveLineGenerator:
-    def __init__(self, config_path='config.yaml'):
+    def __init__(self, config_path='config.yaml', curve_config=None):
         # Load configuration
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
         
         self.width = self.config['image']['width']
         self.height = self.config['image']['height']
+        
+        # Use provided curve_config or fall back to first curve config in config file
+        if curve_config is None:
+            curve_config = self.config.get('curve_lines_dataset', [{}])[0] if isinstance(self.config.get('curve_lines_dataset'), list) else self.config.get('curve_lines_dataset', {})
+        
+        self.curve_config = curve_config
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -182,10 +188,10 @@ class CurveLineGenerator:
     
     def generate_dataset(self):
         """Generate the complete dataset with train/val/test splits."""
-        # Get configuration parameters
-        dataset_config = self.config.get('curve_lines_dataset', {})
-        num_samples_per_class = dataset_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = dataset_config.get('num_translations_per_shape', 8)
+        # Get configuration parameters from the specific curve config
+        num_samples_per_class = self.curve_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = self.curve_config.get('num_translations_per_shape', 8)
+        folder_name = self.curve_config.get('folder_name', 'curve_lines_dataset')
         
         # Define split ratios
         train_ratio = 0.7
@@ -199,7 +205,7 @@ class CurveLineGenerator:
         
         # Get output directory from config
         base_dir = self.config['output']['base_dir']
-        dataset_dir = os.path.join(base_dir, 'curve_lines_dataset')
+        dataset_dir = os.path.join(base_dir, folder_name)
         
         # Create directory structure
         splits = ['train', 'val', 'test']
@@ -268,11 +274,37 @@ def main():
     
     args = parser.parse_args()
     
-    # Initialize generator
-    generator = CurveLineGenerator(config_path=args.config)
+    # Load configuration
+    with open(args.config, 'r') as f:
+        config = yaml.safe_load(f)
     
-    # Generate dataset
-    generator.generate_dataset()
+    # Get curve_lines_dataset configurations
+    curve_configs = config.get('curve_lines_dataset', [])
+    if not isinstance(curve_configs, list):
+        curve_configs = [curve_configs]
+    
+    # Generate datasets for each configuration
+    total_datasets_generated = 0
+    for curve_config in curve_configs:
+        folder_name = curve_config.get('folder_name', 'curve_lines_dataset')
+        num_samples_per_class = curve_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = curve_config.get('num_translations_per_shape', 8)
+        
+        print(f"\nGenerating curve lines dataset for folder: {folder_name}")
+        print(f"Configuration: num_samples_per_class={num_samples_per_class}, "
+              f"num_translations_per_shape={num_translations_per_shape}")
+        
+        # Initialize generator with specific curve config
+        generator = CurveLineGenerator(
+            config_path=args.config,
+            curve_config=curve_config
+        )
+        
+        # Generate dataset for this configuration
+        generator.generate_dataset()
+        total_datasets_generated += 1
+    
+    print(f"\nTotal curve lines datasets generated: {total_datasets_generated}")
 
 if __name__ == "__main__":
     main() 

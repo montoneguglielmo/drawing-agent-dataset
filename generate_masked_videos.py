@@ -16,7 +16,14 @@ class MaskedVideoGenerator:
         
         self.width = self.config['image']['width']
         self.height = self.config['image']['height']
-        self.mask_config = self.config['mask']
+        
+        # Default mask parameters
+        self.mask_config = {
+            'aspect_ratio': [0.75, 1.5],
+            'num_blocks': 8,
+            'spatial_scale': [0.15, 0.15],
+            'temporal_scale': [1.0, 1.0]
+        }
         
     def generate_mask(self, frame_shape):
         """Generate a random mask for a single frame."""

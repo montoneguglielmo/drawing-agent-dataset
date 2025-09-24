@@ -4,15 +4,19 @@ import random
 import yaml
 from pathlib import Path
 
-def create_video_index(dataset_path, output_file):
-    # Get all video files
+def create_video_index(dataset_paths, output_file):
+    # Get all video files from multiple directories
     video_extensions = ('.mp4', '.avi', '.mov', '.mkv')
     video_files = []
     
-    for root, _, files in os.walk(dataset_path):
-        for file in files:
-            if file.lower().endswith(video_extensions):
-                video_files.append(os.path.join(root, file))
+    for dataset_path in dataset_paths:
+        if os.path.exists(dataset_path):
+            for root, _, files in os.walk(dataset_path):
+                for file in files:
+                    if file.lower().endswith(video_extensions):
+                        video_files.append(os.path.join(root, file))
+        else:
+            print(f"Warning: Directory {dataset_path} does not exist, skipping...")
     
     # Sort files for reproducibility
     video_files.sort()
@@ -47,11 +51,19 @@ if __name__ == "__main__":
     if not base_dir:
         raise ValueError("base_dir not found in config file")
     
-    # Create videos directory if it doesn't exist
-    videos_dir = os.path.join(base_dir, "videos")
-    os.makedirs(videos_dir, exist_ok=True)
+    # Get video configurations and create directory paths
+    video_configs = config.get('video', [])
+    if not isinstance(video_configs, list):
+        video_configs = [video_configs]
     
-    # Create output file in the videos directory
-    output_file = os.path.join(videos_dir, "videos_index.csv")
+    dataset_paths = []
+    for video_config in video_configs:
+        folder_name = video_config.get('folder_name', 'videos')
+        video_dir = os.path.join(base_dir, folder_name)
+        dataset_paths.append(video_dir)
+        print(f"Will index videos from: {video_dir}")
     
-    create_video_index(videos_dir, output_file) 
+    # Create output file in the base directory
+    output_file = os.path.join(base_dir, "videos_index.csv")
+    
+    create_video_index(dataset_paths, output_file) 
