@@ -9,8 +9,8 @@ import math
 from scipy.interpolate import interp1d
 import yaml
 
-class CurveLineGenerator:
-    def __init__(self, config_path='config.yaml', curve_config=None):
+class LetterDatasetGenerator:
+    def __init__(self, config_path='config.yaml', letter_config=None):
         # Load configuration
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -21,11 +21,11 @@ class CurveLineGenerator:
         self.margin_y = int(self.height * 0.15)
         self.upper_margin_y = min(self.width, self.height) // 5  # Compass space
         
-        # Use provided curve_config or fall back to first curve config in config file
-        if curve_config is None:
-            curve_config = self.config.get('curve_lines_dataset', [{}])[0] if isinstance(self.config.get('curve_lines_dataset'), list) else self.config.get('curve_lines_dataset', {})
+        # Use provided letter_config or fall back to first letter config in config file
+        if letter_config is None:
+            letter_config = self.config.get('letter_dataset', [{}])[0] if isinstance(self.config.get('letter_dataset'), list) else self.config.get('letter_dataset', {})
         
-        self.curve_config = curve_config
+        self.letter_config = letter_config
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -43,98 +43,175 @@ class CurveLineGenerator:
         background = (background * 255).astype(np.uint8)
         return background
     
-    def generate_straight_line_points(self):
-        """Generate 3 points that form a straight line."""
+    def generate_letter_points(self, letter):
+        """Generate points that form a specific letter."""
         # Use larger margins for initial generation to ensure translation space
-        # Final bounds will be enforced during translation
         initial_margin_x = self.margin_x + 3
         initial_margin_y = self.margin_y + 3
-    
-        # Modify the upper margin to take into account the compass size in the videos        
         upper_margin_y = self.upper_margin_y
-
-        # Define minimum distance between start and end points
-        # Use 20% of the smaller dimension as minimum distance
-        min_distance = min(self.width, self.height) * 0.2
-        max_attempts = 50  # Prevent infinite loops
         
-        for attempt in range(max_attempts):
-            # Generate two random points within smaller margins
-            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            x2 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y2 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            
-            # Check if points are far enough apart
-            distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-            if distance >= min_distance:
-                break
+        # Define letter size as percentage of image dimensions
+        letter_width = int(self.width * 0.4)  # 40% of image width
+        letter_height = int(self.height * 0.4)  # 40% of image height
         
-        # If we couldn't find suitable points after max_attempts, use the last generated points
-        # This should rarely happen with reasonable min_distanc
+        # Center the letter in the available space
+        center_x = self.width // 2
+        center_y = (self.height + upper_margin_y) // 2
         
-        return [(x1, y1), (x2, y2)]
+        # Generate letter-specific points
+        if letter.lower() == 'a':
+            return self._generate_a_points(center_x, center_y, letter_width, letter_height)
+        elif letter.lower() == 'c':
+            return self._generate_c_points(center_x, center_y, letter_width, letter_height)
+        elif letter.lower() == 'h':
+            return self._generate_h_points(center_x, center_y, letter_width, letter_height)
+        elif letter.lower() == 'o':
+            return self._generate_o_points(center_x, center_y, letter_width, letter_height)
+        elif letter.lower() == 's':
+            return self._generate_s_points(center_x, center_y, letter_width, letter_height)
+        else:
+            # Default to a simple cross for unknown letters
+            return self._generate_cross_points(center_x, center_y, letter_width, letter_height)
     
-    def generate_curve_points(self):
-        """Generate 3 points that form a curve."""
-        # Use larger margins for initial generation to ensure translation space
-        # Final bounds will be enforced during translation
-        initial_margin_x = self.margin_x + 3
-        initial_margin_y = self.margin_y + 3
+    def _generate_a_points(self, center_x, center_y, width, height):
+        """Generate points for letter A."""
+        half_width = width // 2
+        half_height = height // 2
+        
+        # A shape: two diagonal lines meeting at top, horizontal line in middle
+        points = []
+        
+        # Left diagonal line
+        points.extend([
+            (center_x - half_width, center_y + half_height),  # Bottom left
+            (center_x, center_y - half_height),  # Top center
+        ])
+        
+        # Right diagonal line  
+        points.extend([
+            (center_x, center_y - half_height),  # Top center
+            (center_x + half_width, center_y + half_height),  # Bottom right
+        ])
+        
+        # Horizontal line
+        points.extend([
+            (center_x - half_width//2, center_y),  # Left of horizontal
+            (center_x + half_width//2, center_y),  # Right of horizontal
+        ])
+        
+        return points
     
-        # Modify the upper margin to take into account the compass size in the videos        
-        upper_margin_y = self.upper_margin_y
-
-        # Define minimum distance between start and end points
-        # Use 20% of the smaller dimension as minimum distance
-        min_distance = min(self.width, self.height) * 0.2
-        max_attempts = 50  # Prevent infinite loops
+    def _generate_c_points(self, center_x, center_y, width, height):
+        """Generate points for letter C."""
+        half_width = width // 2
+        half_height = height // 2
         
-        for attempt in range(max_attempts):
-            # Generate start and end points that will form a curve
-            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            x3 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y3 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            
-            # Check if points are far enough apart
-            distance = math.sqrt((x3 - x1)**2 + (y3 - y1)**2)
-            if distance >= min_distance:
-                break
+        # C shape: curved line
+        points = []
+        num_points = 20
         
-        # If we couldn't find suitable points after max_attempts, use the last generated points
-        # This should rarely happen with reasonable min_distance
+        for i in range(num_points + 1):
+            angle = math.pi + (i * math.pi / num_points)  # From 180 to 360 degrees
+            x = center_x + int(half_width * math.cos(angle))
+            y = center_y + int(half_height * math.sin(angle))
+            points.append((x, y))
         
-        # Middle point that creates a curve
-        # Position it away from the straight line between x1,y1 and x3,y3
-        mid_x = (x1 + x3) // 2
-        mid_y = (y1 + y3) // 2
+        return points
+    
+    def _generate_h_points(self, center_x, center_y, width, height):
+        """Generate points for letter H."""
+        half_width = width // 2
+        half_height = height // 2
         
-        # Add significant offset to create a curve (using appropriate offset for initial generation)
-        # Ensure offset is not too close to zero by using a minimum offset threshold
-        min_offset_x = int(self.width * 0.05)  # Minimum 5% of width
-        min_offset_y = int(self.height * 0.05)  # Minimum 5% of height
-        max_offset_x = int(self.width * 0.15)
-        max_offset_y = int(self.height * 0.15)
+        # H shape: two vertical lines connected by horizontal line
+        points = []
         
-        # Generate offset with minimum threshold
-        offset_x = random.randint(-max_offset_x, max_offset_x)
-        offset_y = random.randint(-max_offset_y, max_offset_y)
+        # Left vertical line
+        points.extend([
+            (center_x - half_width, center_y - half_height),  # Top left
+            (center_x - half_width, center_y + half_height),  # Bottom left
+        ])
         
-        # Ensure offset is not too close to zero
-        if abs(offset_x) < min_offset_x:
-            offset_x = min_offset_x if offset_x >= 0 else -min_offset_x
-        if abs(offset_y) < min_offset_y:
-            offset_y = min_offset_y if offset_y >= 0 else -min_offset_y
+        # Right vertical line
+        points.extend([
+            (center_x + half_width, center_y - half_height),  # Top right
+            (center_x + half_width, center_y + half_height),  # Bottom right
+        ])
         
-        x2 = mid_x + offset_x
-        y2 = mid_y + offset_y
+        # Horizontal connecting line
+        points.extend([
+            (center_x - half_width, center_y),  # Left of horizontal
+            (center_x + half_width, center_y),  # Right of horizontal
+        ])
         
-        # Ensure points stay within initial bounds
-        x2 = max(initial_margin_x, min(self.width - initial_margin_x, x2))
-        y2 = max(upper_margin_y + initial_margin_y, min(self.height - initial_margin_y, y2))
+        return points
+    
+    def _generate_o_points(self, center_x, center_y, width, height):
+        """Generate points for letter O."""
+        half_width = width // 2
+        half_height = height // 2
         
-        return [(x1, y1), (x2, y2), (x3, y3)]
+        # O shape: oval/circle
+        points = []
+        num_points = 30
+        
+        for i in range(num_points):
+            angle = (i * 2 * math.pi / num_points)
+            x = center_x + int(half_width * math.cos(angle))
+            y = center_y + int(half_height * math.sin(angle))
+            points.append((x, y))
+        
+        # Close the circle
+        points.append(points[0])
+        
+        return points
+    
+    def _generate_s_points(self, center_x, center_y, width, height):
+        """Generate points for letter S."""
+        half_width = width // 2
+        half_height = height // 2
+        
+        # S shape: curved line with two curves
+        points = []
+        num_points = 20
+        
+        for i in range(num_points + 1):
+            t = i / num_points
+            if t <= 0.5:
+                # First half: upper curve
+                angle = math.pi + (t * 2 * math.pi)  # From 180 to 360 degrees
+                x = center_x + int(half_width * math.cos(angle))
+                y = center_y - half_height + int(half_height * t)
+            else:
+                # Second half: lower curve
+                angle = (t - 0.5) * 2 * math.pi  # From 0 to 180 degrees
+                x = center_x + int(half_width * math.cos(angle))
+                y = center_y + int(half_height * (t - 0.5))
+            points.append((x, y))
+        
+        return points
+    
+    def _generate_cross_points(self, center_x, center_y, width, height):
+        """Generate points for a simple cross (default for unknown letters)."""
+        half_width = width // 2
+        half_height = height // 2
+        
+        # Cross shape: vertical and horizontal lines
+        points = []
+        
+        # Vertical line
+        points.extend([
+            (center_x, center_y - half_height),  # Top
+            (center_x, center_y + half_height),  # Bottom
+        ])
+        
+        # Horizontal line
+        points.extend([
+            (center_x - half_width, center_y),  # Left
+            (center_x + half_width, center_y),  # Right
+        ])
+        
+        return points
     
     def interpolate_points(self, points, num_points=50):
         """Interpolate between points using scipy's interp1d for smooth curves."""
@@ -149,8 +226,8 @@ class CurveLineGenerator:
         # Create interpolation functions for x and y coordinates
         t = np.linspace(0, 1, len(points))
         
-        # Use linear interpolation for 3 points, cubic for more points
-        if len(points) <= 3:
+        # Use linear interpolation for simple shapes, cubic for more complex ones
+        if len(points) <= 10:
             fx = interp1d(t, x_coords, kind='linear', bounds_error=False, fill_value=(x_coords[0], x_coords[-1]))
             fy = interp1d(t, y_coords, kind='linear', bounds_error=False, fill_value=(y_coords[0], y_coords[-1]))
         else:
@@ -229,10 +306,11 @@ class CurveLineGenerator:
     
     def generate_dataset(self):
         """Generate the complete dataset with train/val/test splits."""
-        # Get configuration parameters from the specific curve config
-        num_samples_per_class = self.curve_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = self.curve_config.get('num_translations_per_shape', 8)
-        folder_name = self.curve_config.get('folder_name', 'curve_lines_dataset')
+        # Get configuration parameters from the specific letter config
+        num_samples_per_class = self.letter_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = self.letter_config.get('num_translations_per_shape', 8)
+        folder_name = self.letter_config.get('folder_name', 'letter_dataset')
+        letters = self.letter_config.get('letters', ['a', 'c', 'h'])
         
         # Define split ratios
         train_ratio = 0.5
@@ -250,25 +328,21 @@ class CurveLineGenerator:
         
         # Create directory structure
         splits = ['train', 'val', 'test']
-        classes = ['class0', 'class1']  # class0: straight lines, class1: curves
+        classes = [f'class{idx}' for idx in range(len(letters))]  # class0, class1, etc.
         
         for split in splits:
             for class_name in classes:
                 os.makedirs(os.path.join(dataset_dir, split, class_name), exist_ok=True)
         
-        # Generate samples for each class
-        for class_idx, class_name in enumerate(classes):
-            print(f"Generating {class_name} samples...")
-            
-            if class_idx == 0:  # Straight lines
-                generate_points_func = self.generate_straight_line_points
-            else:  # Curves
-                generate_points_func = self.generate_curve_points
+        # Generate samples for each letter class
+        for class_idx, letter in enumerate(letters):
+            class_name = f'class{class_idx}'
+            print(f"Generating {class_name} samples for letter '{letter}'...")
             
             # Generate base shapes
             base_shapes = []
-            for _ in range(num_samples_per_class // num_translations_per_shape):  # num_translations_per_shape translations per shape
-                base_shapes.append(generate_points_func())
+            for _ in range(num_samples_per_class // num_translations_per_shape):
+                base_shapes.append(self.generate_letter_points(letter))
             
             # Generate all samples with translations
             all_samples = []
@@ -304,13 +378,14 @@ class CurveLineGenerator:
                     cv2.imwrite(output_path, image)
         
         print(f"Dataset generated successfully in {dataset_dir}")
+        print(f"Letters: {letters}")
         print(f"Train: {train_samples} samples per class")
         print(f"Val: {val_samples} samples per class")
         print(f"Test: {test_samples} samples per class")
         print(f"Number of translations per shape: {num_translations_per_shape}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate curve/line classification dataset')
+    parser = argparse.ArgumentParser(description='Generate letter classification dataset')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     
     args = parser.parse_args()
@@ -319,33 +394,34 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
-    # Get curve_lines_dataset configurations
-    curve_configs = config.get('curve_lines_dataset', [])
-    if not isinstance(curve_configs, list):
-        curve_configs = [curve_configs]
+    # Get letter_dataset configurations
+    letter_configs = config.get('letter_dataset', [])
+    if not isinstance(letter_configs, list):
+        letter_configs = [letter_configs]
     
     # Generate datasets for each configuration
     total_datasets_generated = 0
-    for curve_config in curve_configs:
-        folder_name = curve_config.get('folder_name', 'curve_lines_dataset')
-        num_samples_per_class = curve_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = curve_config.get('num_translations_per_shape', 8)
+    for letter_config in letter_configs:
+        folder_name = letter_config.get('folder_name', 'letter_dataset')
+        num_samples_per_class = letter_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = letter_config.get('num_translations_per_shape', 8)
+        letters = letter_config.get('letters', ['a', 'c', 'h'])
         
-        print(f"\nGenerating curve lines dataset for folder: {folder_name}")
+        print(f"\nGenerating letter dataset for folder: {folder_name}")
         print(f"Configuration: num_samples_per_class={num_samples_per_class}, "
-              f"num_translations_per_shape={num_translations_per_shape}")
+              f"num_translations_per_shape={num_translations_per_shape}, letters={letters}")
         
-        # Initialize generator with specific curve config
-        generator = CurveLineGenerator(
+        # Initialize generator with specific letter config
+        generator = LetterDatasetGenerator(
             config_path=args.config,
-            curve_config=curve_config
+            letter_config=letter_config
         )
         
         # Generate dataset for this configuration
         generator.generate_dataset()
         total_datasets_generated += 1
     
-    print(f"\nTotal curve lines datasets generated: {total_datasets_generated}")
+    print(f"\nTotal letter datasets generated: {total_datasets_generated}")
 
 if __name__ == "__main__":
-    main() 
+    main()
