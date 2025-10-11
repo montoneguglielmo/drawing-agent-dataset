@@ -9,8 +9,8 @@ import math
 from scipy.interpolate import interp1d
 import yaml
 
-class CurveLineGenerator:
-    def __init__(self, config_path='config.yaml', curve_config=None):
+class ShapeDatasetGenerator:
+    def __init__(self, config_path='config.yaml', shape_config=None):
         # Load configuration
         with open(config_path, 'r') as f:
             self.config = yaml.safe_load(f)
@@ -19,13 +19,13 @@ class CurveLineGenerator:
         self.height = self.config['image']['height']
         self.margin_x = int(self.width * 0.15)
         self.margin_y = int(self.height * 0.15)
-        self.upper_margin_y = min(self.width, self.height) // 5  # Compass space
+        self.compass_size = min(self.width, self.height) // 5  # Compass space
         
-        # Use provided curve_config or fall back to first curve config in config file
-        if curve_config is None:
-            curve_config = self.config.get('curve_lines_dataset', [{}])[0] if isinstance(self.config.get('curve_lines_dataset'), list) else self.config.get('curve_lines_dataset', {})
+        # Use provided shape_config or fall back to first shape config in config file
+        if shape_config is None:
+            shape_config = self.config.get('shape_dataset', [{}])[0] if isinstance(self.config.get('shape_dataset'), list) else self.config.get('shape_dataset', {})
         
-        self.curve_config = curve_config
+        self.shape_config = shape_config
         
         # Load pre-generated backgrounds
         base_dir = self.config['output']['base_dir']
@@ -43,98 +43,26 @@ class CurveLineGenerator:
         background = (background * 255).astype(np.uint8)
         return background
     
-    def generate_straight_line_points(self):
-        """Generate 3 points that form a straight line."""
-        # Use larger margins for initial generation to ensure translation space
-        # Final bounds will be enforced during translation
-        initial_margin_x = self.margin_x + 3
-        initial_margin_y = self.margin_y + 3
+    def generate_random_path(self, num_points=None):
+        """Generate a random path for the drawing."""
+        points = []
+        
+        # Randomly select number of points from the specified list
+        if num_points is None:
+            n_points = [2,3,4]
+            num_points = random.choice(n_points)
+        
+        # Calculate margins as 15% of dimensions
+        margin_x = self.margin_x
+        margin_y = self.margin_y
+        
+        # Generate all points randomly, avoiding compass boundary
+        x_coords = [random.randint(margin_x, self.width - margin_x) for _ in range(num_points)]
+        y_coords = [random.randint(self.compass_size + margin_y, self.height - margin_y) for _ in range(num_points)]
+        points = list(zip(x_coords, y_coords))
+        
+        return points
     
-        # Modify the upper margin to take into account the compass size in the videos        
-        upper_margin_y = self.upper_margin_y
-
-        # Define minimum distance between start and end points
-        # Use 20% of the smaller dimension as minimum distance
-        min_distance = min(self.width, self.height) * 0.2
-        max_attempts = 50  # Prevent infinite loops
-        
-        for attempt in range(max_attempts):
-            # Generate two random points within smaller margins
-            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            x2 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y2 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            
-            # Check if points are far enough apart
-            distance = math.sqrt((x2 - x1)**2 + (y2 - y1)**2)
-            if distance >= min_distance:
-                break
-        
-        # If we couldn't find suitable points after max_attempts, use the last generated points
-        # This should rarely happen with reasonable min_distanc
-        
-        return [(x1, y1), (x2, y2)]
-    
-    def generate_curve_points(self):
-        """Generate 3 points that form a curve."""
-        # Use larger margins for initial generation to ensure translation space
-        # Final bounds will be enforced during translation
-        initial_margin_x = self.margin_x + 3
-        initial_margin_y = self.margin_y + 3
-    
-        # Modify the upper margin to take into account the compass size in the videos        
-        upper_margin_y = self.upper_margin_y
-
-        # Define minimum distance between start and end points
-        # Use 20% of the smaller dimension as minimum distance
-        min_distance = min(self.width, self.height) * 0.2
-        max_attempts = 50  # Prevent infinite loops
-        
-        for attempt in range(max_attempts):
-            # Generate start and end points that will form a curve
-            x1 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y1 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            x3 = random.randint(initial_margin_x, self.width - initial_margin_x)
-            y3 = random.randint(upper_margin_y + initial_margin_y, self.height - initial_margin_y)
-            
-            # Check if points are far enough apart
-            distance = math.sqrt((x3 - x1)**2 + (y3 - y1)**2)
-            if distance >= min_distance:
-                break
-        
-        # If we couldn't find suitable points after max_attempts, use the last generated points
-        # This should rarely happen with reasonable min_distance
-        
-        # Middle point that creates a curve
-        # Position it away from the straight line between x1,y1 and x3,y3
-        mid_x = (x1 + x3) // 2
-        mid_y = (y1 + y3) // 2
-        
-        # Add significant offset to create a curve (using appropriate offset for initial generation)
-        # Ensure offset is not too close to zero by using a minimum offset threshold
-        min_offset_x = int(self.width * 0.05)  # Minimum 5% of width
-        min_offset_y = int(self.height * 0.05)  # Minimum 5% of height
-        max_offset_x = int(self.width * 0.15)
-        max_offset_y = int(self.height * 0.15)
-        
-        # Generate offset with minimum threshold
-        offset_x = random.randint(-max_offset_x, max_offset_x)
-        offset_y = random.randint(-max_offset_y, max_offset_y)
-        
-        # Ensure offset is not too close to zero
-        if abs(offset_x) < min_offset_x:
-            offset_x = min_offset_x if offset_x >= 0 else -min_offset_x
-        if abs(offset_y) < min_offset_y:
-            offset_y = min_offset_y if offset_y >= 0 else -min_offset_y
-        
-        x2 = mid_x + offset_x
-        y2 = mid_y + offset_y
-        
-        # Ensure points stay within initial bounds
-        x2 = max(initial_margin_x, min(self.width - initial_margin_x, x2))
-        y2 = max(upper_margin_y + initial_margin_y, min(self.height - initial_margin_y, y2))
-        
-        return [(x1, y1), (x2, y2), (x3, y3)]
     
     def interpolate_points(self, points, num_points=50):
         """Interpolate between points using scipy's interp1d for smooth curves."""
@@ -149,8 +77,8 @@ class CurveLineGenerator:
         # Create interpolation functions for x and y coordinates
         t = np.linspace(0, 1, len(points))
         
-        # Use linear interpolation for 3 points, cubic for more points
-        if len(points) <= 3:
+        # Use linear interpolation for simple shapes, cubic for more complex ones
+        if len(points) <= 10:
             fx = interp1d(t, x_coords, kind='linear', bounds_error=False, fill_value=(x_coords[0], x_coords[-1]))
             fy = interp1d(t, y_coords, kind='linear', bounds_error=False, fill_value=(y_coords[0], y_coords[-1]))
         else:
@@ -187,7 +115,7 @@ class CurveLineGenerator:
         # Calculate margins as 15% of dimensions
         margin_x = self.margin_x
         margin_y = self.margin_y
-        upper_margin_y = self.upper_margin_y
+        compass_size = self.compass_size
         
         # Calculate the bounding box of the original shape
         points_array = np.array(points)
@@ -207,7 +135,7 @@ class CurveLineGenerator:
         
         # For y: use compass space + regular margin as lower bound
         max_translate_y = self.height - margin_y - max_y
-        min_translate_y = upper_margin_y + margin_y - min_y
+        min_translate_y = compass_size + margin_y - min_y
                 
         # Generate translations
         for i in range(num_translations):
@@ -229,10 +157,11 @@ class CurveLineGenerator:
     
     def generate_dataset(self):
         """Generate the complete dataset with train/val/test splits."""
-        # Get configuration parameters from the specific curve config
-        num_samples_per_class = self.curve_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = self.curve_config.get('num_translations_per_shape', 8)
-        folder_name = self.curve_config.get('folder_name', 'curve_lines_dataset')
+        # Get configuration parameters from the specific shape config
+        num_samples_per_class = self.shape_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = self.shape_config.get('num_translations_per_shape', 8)
+        folder_name = self.shape_config.get('folder_name', 'shape_dataset')
+        num_classes = self.shape_config.get('num_classes', 3)
         
         # Define split ratios
         train_ratio = 0.5
@@ -250,31 +179,22 @@ class CurveLineGenerator:
         
         # Create directory structure
         splits = ['train', 'val', 'test']
-        classes = ['class0', 'class1']  # class0: straight lines, class1: curves
+        classes = [f'class{idx}' for idx in range(num_classes)]  # class0, class1, etc.
         
         for split in splits:
             for class_name in classes:
                 os.makedirs(os.path.join(dataset_dir, split, class_name), exist_ok=True)
         
-        # Generate samples for each class
-        for class_idx, class_name in enumerate(classes):
-            print(f"Generating {class_name} samples...")
+        # Generate samples for each shape class
+        for class_idx in range(num_classes):
+            class_name = f'class{class_idx}'
+            print(f"Generating {class_name} samples for random shapes...")
             
-            if class_idx == 0:  # Straight lines
-                generate_points_func = self.generate_straight_line_points
-            else:  # Curves
-                generate_points_func = self.generate_curve_points
+            # Generate ONE base shape per class
+            base_shape = self.generate_random_path()
             
-            # Generate base shapes
-            base_shapes = []
-            for _ in range(num_samples_per_class // num_translations_per_shape):  # num_translations_per_shape translations per shape
-                base_shapes.append(generate_points_func())
-            
-            # Generate all samples with translations
-            all_samples = []
-            for base_shape in base_shapes:
-                translated_shapes = self.generate_translated_versions(base_shape, num_translations_per_shape)
-                all_samples.extend(translated_shapes)
+            # Generate all samples with translations of the same base shape
+            all_samples = self.generate_translated_versions(base_shape, num_samples_per_class)
             
             # Shuffle samples
             random.shuffle(all_samples)
@@ -304,13 +224,14 @@ class CurveLineGenerator:
                     cv2.imwrite(output_path, image)
         
         print(f"Dataset generated successfully in {dataset_dir}")
+        print(f"Number of classes: {num_classes}")
         print(f"Train: {train_samples} samples per class")
         print(f"Val: {val_samples} samples per class")
         print(f"Test: {test_samples} samples per class")
         print(f"Number of translations per shape: {num_translations_per_shape}")
 
 def main():
-    parser = argparse.ArgumentParser(description='Generate curve/line classification dataset')
+    parser = argparse.ArgumentParser(description='Generate shape classification dataset')
     parser.add_argument('--config', type=str, default='config.yaml', help='Path to configuration file')
     
     args = parser.parse_args()
@@ -319,33 +240,34 @@ def main():
     with open(args.config, 'r') as f:
         config = yaml.safe_load(f)
     
-    # Get curve_lines_dataset configurations
-    curve_configs = config.get('curve_lines_dataset', [])
-    if not isinstance(curve_configs, list):
-        curve_configs = [curve_configs]
+    # Get shape_dataset configurations
+    shape_configs = config.get('shape_dataset', [])
+    if not isinstance(shape_configs, list):
+        shape_configs = [shape_configs]
     
     # Generate datasets for each configuration
     total_datasets_generated = 0
-    for curve_config in curve_configs:
-        folder_name = curve_config.get('folder_name', 'curve_lines_dataset')
-        num_samples_per_class = curve_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = curve_config.get('num_translations_per_shape', 8)
+    for shape_config in shape_configs:
+        folder_name = shape_config.get('folder_name', 'shape_dataset')
+        num_samples_per_class = shape_config.get('num_samples_per_class', 1000)
+        num_translations_per_shape = shape_config.get('num_translations_per_shape', 8)
+        num_classes = shape_config.get('num_classes', 3)
         
-        print(f"\nGenerating curve lines dataset for folder: {folder_name}")
+        print(f"\nGenerating shape dataset for folder: {folder_name}")
         print(f"Configuration: num_samples_per_class={num_samples_per_class}, "
-              f"num_translations_per_shape={num_translations_per_shape}")
+              f"num_translations_per_shape={num_translations_per_shape}, num_classes={num_classes}")
         
-        # Initialize generator with specific curve config
-        generator = CurveLineGenerator(
+        # Initialize generator with specific shape config
+        generator = ShapeDatasetGenerator(
             config_path=args.config,
-            curve_config=curve_config
+            shape_config=shape_config
         )
         
         # Generate dataset for this configuration
         generator.generate_dataset()
         total_datasets_generated += 1
     
-    print(f"\nTotal curve lines datasets generated: {total_datasets_generated}")
+    print(f"\nTotal shape datasets generated: {total_datasets_generated}")
 
 if __name__ == "__main__":
-    main() 
+    main()

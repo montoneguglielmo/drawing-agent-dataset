@@ -22,11 +22,11 @@ background:
 
 # Output directory
 output:
-  base_dir: "../datasets/test"
+  base_dir: "../shared/datasets/action-drawing-agent/one-folder-dataset/19200-videos"
 
 # Generation parameters
 generation:
-  num_videos: 30
+  num_videos: 19200
 
 # Video parameters
 video:
@@ -41,8 +41,27 @@ video:
 
 # Curve lines dataset parameters
 curve_lines_dataset:
+  - folder_name: "curve_lines_dataset_100"
+    num_samples_per_class: 100
+    num_translations_per_shape: 5  # Number of translated versions per base shape
   - folder_name: "curve_lines_dataset_200"
-    num_samples_per_class: 200  # Number of samples per class (straight lines and curves)
+    num_samples_per_class: 200
+    num_translations_per_shape: 5  # Number of translated versions per base shape
   - folder_name: "curve_lines_dataset_400"
     num_samples_per_class: 400  # Number of samples per class (straight lines and curves)
-    num_translations_per_shape: 8  # Number of translated versions per base shape
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+
+# Shape dataset parameters
+shape_dataset:
+  - folder_name: "shape_dataset_100"
+    num_samples_per_class: 100
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+    num_classes: 3  # Number of different shape classes to generate
+  - folder_name: "shape_dataset_200"
+    num_samples_per_class: 200
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+    num_classes: 3  # Number of different shape classes to generate
+  - folder_name: "shape_dataset_400"
+    num_samples_per_class: 400
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+    num_classes: 5  # Number of different shape classes to generate
