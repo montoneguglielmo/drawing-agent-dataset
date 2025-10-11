@@ -51,17 +51,17 @@ curve_lines_dataset:
     num_samples_per_class: 400  # Number of samples per class (straight lines and curves)
     num_translations_per_shape: 5  # Number of translated versions per base shape
 
-# Letter dataset parameters
-letter_dataset:
-  - folder_name: "letter_dataset_ach_100"
+# Shape dataset parameters
+shape_dataset:
+  - folder_name: "shape_dataset_100"
     num_samples_per_class: 100
     num_translations_per_shape: 5  # Number of translated versions per base shape
-    letters: ['a', 'c', 'h']  # Letters to generate
-  - folder_name: "letter_dataset_ach_200"
+    num_classes: 3  # Number of different shape classes to generate
+  - folder_name: "shape_dataset_200"
     num_samples_per_class: 200
     num_translations_per_shape: 5  # Number of translated versions per base shape
-    letters: ['a', 'c', 'h']  # Letters to generate
-  - folder_name: "letter_dataset_achos_100"
-    num_samples_per_class: 100
+    num_classes: 3  # Number of different shape classes to generate
+  - folder_name: "shape_dataset_400"
+    num_samples_per_class: 400
     num_translations_per_shape: 5  # Number of translated versions per base shape
-    letters: ['a', 'c', 'h', 'o', 's']  # Letters to generate
+    num_classes: 5  # Number of different shape classes to generate

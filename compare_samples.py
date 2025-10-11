@@ -85,23 +85,23 @@ def get_random_curve_line_image(curve_lines_dir):
     image = Image.open(image_path)
     return np.array(image)
 
-def get_random_letter_image(letter_dir):
-    # Get a random letter image from train, val, or test directory
-    train_dir = os.path.join(letter_dir, 'train')
-    val_dir = os.path.join(letter_dir, 'val')
-    test_dir = os.path.join(letter_dir, 'test')
+def get_random_shape_image(shape_dir):
+    # Get a random shape image from train, val, or test directory
+    train_dir = os.path.join(shape_dir, 'train')
+    val_dir = os.path.join(shape_dir, 'val')
+    test_dir = os.path.join(shape_dir, 'test')
     
     # Randomly choose between train, val, and test directories
     chosen_dir = random.choice([train_dir, val_dir, test_dir])
     
-    # Randomly choose a class directory (class0, class1, etc. for different letters)
+    # Randomly choose a class directory (class0, class1, etc. for different shapes)
     class_dirs = [d for d in os.listdir(chosen_dir) if d.startswith('class')]
     if not class_dirs:
         raise FileNotFoundError(f"No class directories found in {chosen_dir}")
     
     class_dir = os.path.join(chosen_dir, random.choice(class_dirs))
     
-    # Get a random letter image from the chosen class directory
+    # Get a random shape image from the chosen class directory
     image_files = [f for f in os.listdir(class_dir) if f.endswith('.png')]
     if not image_files:
         raise FileNotFoundError(f"No image files found in {class_dir}")
@@ -153,7 +153,7 @@ def create_video_curve_comparison(video_frame, curve_line_image, output_path):
     plt.savefig(output_path)
     plt.close()
 
-def create_video_letter_comparison(video_frame, letter_image, output_path):
+def create_video_shape_comparison(video_frame, shape_image, output_path):
     # Create a figure with two subplots side by side
     fig, (ax1, ax2) = plt.subplots(1, 2, figsize=(12, 6))
     
@@ -162,9 +162,9 @@ def create_video_letter_comparison(video_frame, letter_image, output_path):
     ax1.set_title('Random Video Frame')
     ax1.axis('off')
     
-    # Display letter image
-    ax2.imshow(letter_image, cmap='gray')
-    ax2.set_title('Random Letter Image')
+    # Display shape image
+    ax2.imshow(shape_image, cmap='gray')
+    ax2.set_title('Random Shape Image')
     ax2.axis('off')
     
     # Adjust layout and save
@@ -274,38 +274,38 @@ def main():
     # Use the first available curve lines directory
     primary_curve_lines_dir = curve_lines_dirs[0]
     
-    # Get letter dataset directories from config
-    letter_configs = config['letter_dataset']
-    letter_dirs = []
-    for letter_config in letter_configs:
-        letter_folder = letter_config['folder_name']
-        letter_dir = os.path.join(base_dir, letter_folder)
-        if os.path.exists(letter_dir):
-            letter_dirs.append(letter_dir)
+    # Get shape dataset directories from config
+    shape_configs = config['shape_dataset']
+    shape_dirs = []
+    for shape_config in shape_configs:
+        shape_folder = shape_config['folder_name']
+        shape_dir = os.path.join(base_dir, shape_folder)
+        if os.path.exists(shape_dir):
+            shape_dirs.append(shape_dir)
     
-    # Use the first available letter directory
-    primary_letter_dir = letter_dirs[0] if letter_dirs else None
+    # Use the first available shape directory
+    primary_shape_dir = shape_dirs[0] if shape_dirs else None
     
     mnist_dir = os.path.join(base_dir, 'mnist')  # Updated to point to mnist root directory
     output_dir = os.path.join(base_dir, 'comparisons')
     frame_interval_dir = os.path.join(base_dir, 'comparisons/frame_intervals')
-    letter_comparison_dir = os.path.join(base_dir, 'comparisons/video_letter')
+    shape_comparison_dir = os.path.join(base_dir, 'comparisons/video_shape')
     
     # Check if MNIST directory exists
     mnist_available = os.path.exists(mnist_dir)
     if not mnist_available:
         print("MNIST directory not found. Will only generate comparisons between video frames and curve lines.")
     
-    # Check if letter dataset directory exists
-    letter_available = primary_letter_dir is not None
-    if not letter_available:
-        print("Letter dataset directory not found. Will not generate video-letter comparisons.")
+    # Check if shape dataset directory exists
+    shape_available = primary_shape_dir is not None
+    if not shape_available:
+        print("Shape dataset directory not found. Will not generate video-shape comparisons.")
     
     # Create output directories if they don't exist
     os.makedirs(output_dir, exist_ok=True)
     os.makedirs(frame_interval_dir, exist_ok=True)
-    if letter_available:
-        os.makedirs(letter_comparison_dir, exist_ok=True)
+    if shape_available:
+        os.makedirs(shape_comparison_dir, exist_ok=True)
     
     # Generate frame interval comparisons
     print("Generating frame interval comparisons...")
@@ -341,20 +341,20 @@ def main():
         except Exception as e:
             print(f"Error creating comparison {i+1}: {str(e)}")
     
-    # Generate video-letter comparisons
-    if letter_available:
-        print("\nGenerating video-letter comparisons...")
+    # Generate video-shape comparisons
+    if shape_available:
+        print("\nGenerating video-shape comparisons...")
         for i in range(10):
             try:
                 video_frame = get_random_video_frame(primary_video_dir)
-                letter_image = get_random_letter_image(primary_letter_dir)
+                shape_image = get_random_shape_image(primary_shape_dir)
                 
-                output_path = os.path.join(letter_comparison_dir, f'video_letter_comparison_{i+1}.png')
-                create_video_letter_comparison(video_frame, letter_image, output_path)
-                print(f"Created video-letter comparison {i+1}")
+                output_path = os.path.join(shape_comparison_dir, f'video_shape_comparison_{i+1}.png')
+                create_video_shape_comparison(video_frame, shape_image, output_path)
+                print(f"Created video-shape comparison {i+1}")
                 
             except Exception as e:
-                print(f"Error creating video-letter comparison {i+1}: {str(e)}")
+                print(f"Error creating video-shape comparison {i+1}: {str(e)}")
 
 if __name__ == "__main__":
     main() 
