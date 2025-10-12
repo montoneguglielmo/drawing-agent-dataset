@@ -250,12 +250,11 @@ def main():
     for shape_config in shape_configs:
         folder_name = shape_config.get('folder_name', 'shape_dataset')
         num_samples_per_class = shape_config.get('num_samples_per_class', 1000)
-        num_translations_per_shape = shape_config.get('num_translations_per_shape', 8)
         num_classes = shape_config.get('num_classes', 3)
         
         print(f"\nGenerating shape dataset for folder: {folder_name}")
         print(f"Configuration: num_samples_per_class={num_samples_per_class}, "
-              f"num_translations_per_shape={num_translations_per_shape}, num_classes={num_classes}")
+              f"num_classes={num_classes}")
         
         # Initialize generator with specific shape config
         generator = ShapeDatasetGenerator(

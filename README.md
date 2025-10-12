@@ -1,13 +1,14 @@
 # Drawing Agent Dataset Generator
 
-This project generates synthetic drawing videos, a MNIST dataset and a dataset of images of curves and streight lines. 
-It creates a 3 datasets that includes:
+This project generates synthetic drawing videos, a MNIST dataset, a dataset of images of curves and straight lines, and a shape classification dataset. 
+It creates multiple datasets that includes:
 - Perlin noise backgrounds
 - Drawing videos with compass indicators
 - Masked versions of drawing videos (to visualize VJepa masking strategy)
 - MNIST digit samples with backgrounds
 - Comparison samples between videos and MNIST digits (to make sure drawing in videos are close in style to MNIST digits)
 - Curve and straight line image classification dataset
+- Shape classification dataset with random geometric shapes
 
 ## Prerequisites
 
@@ -79,8 +80,21 @@ mask:
 
 # Curve lines dataset parameters
 curve_lines_dataset:
-  num_samples_per_class: 1000  # Number of samples per class (straight lines and curves)
-  num_translations_per_shape: 8  # Number of translated versions per base shape
+  - folder_name: "curve_lines_dataset_100"
+    num_samples_per_class: 100
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+  - folder_name: "curve_lines_dataset_200"
+    num_samples_per_class: 200
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+  - folder_name: "curve_lines_dataset_400"
+    num_samples_per_class: 400  # Number of samples per class (straight lines and curves)
+    num_translations_per_shape: 5  # Number of translated versions per base shape
+
+# Shape dataset parameters
+shape_dataset:
+  - folder_name: "shape_dataset_20"
+    num_samples_per_class: 20
+    num_classes: 10  # Number of different shape classes to generate
 ```
 
 ## Usage
@@ -131,6 +145,11 @@ make generate_masked_videos
 make generate_curve_lines
 ```
 
+- Generate shape classification dataset:
+```bash
+make generate_shape_dataset
+```
+
 - Generate comparison samples:
 ```bash
 make compare_samples
@@ -163,6 +182,7 @@ make clean-all
 - `generate_videos.py`: Creates drawing videos with compass indicators
 - `generate_masked_videos.py`: Creates masked versions of drawing videos
 - `generate_curve_lines.py`: Creates curve and straight line classification dataset
+- `generate_shape_dataset.py`: Creates shape classification dataset with random geometric shapes
 - `process_mnist.py`: Processes MNIST dataset and combines with backgrounds
 - `compare_samples.py`: Creates comparison samples between videos and MNIST digits
 - `create_drawing_agent_index.py`: Creates an index file for the generated videos
@@ -200,7 +220,7 @@ datasets/drawing-agent-test/
 │   └── drawing_agent_index.csv
 ├── masked_videos_examples/
 │   └── masked_*.mp4
-├── curve_lines_dataset/
+├── curve_lines_dataset_100/
 │   ├── train/
 │   │   ├── class0/  # Straight lines
 │   │   └── class1/  # Curves
@@ -210,6 +230,19 @@ datasets/drawing-agent-test/
 │   └── test/
 │       ├── class0/  # Straight lines
 │       └── class1/  # Curves
+├── curve_lines_dataset_200/
+│   └── ... (same structure as above)
+├── curve_lines_dataset_400/
+│   └── ... (same structure as above)
+├── shape_dataset_20/
+│   ├── train/
+│   │   ├── class0/  # Random shape 1
+│   │   ├── class1/  # Random shape 2
+│   │   └── ... (up to class9)
+│   ├── val/
+│   │   └── ... (same structure as train)
+│   └── test/
+│       └── ... (same structure as train)
 └── comparisons/
     └── comparison_*.png
 ```

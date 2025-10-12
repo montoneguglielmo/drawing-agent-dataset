@@ -53,15 +53,6 @@ curve_lines_dataset:
 
 # Shape dataset parameters
 shape_dataset:
-  - folder_name: "shape_dataset_100"
-    num_samples_per_class: 100
-    num_translations_per_shape: 5  # Number of translated versions per base shape
-    num_classes: 3  # Number of different shape classes to generate
-  - folder_name: "shape_dataset_200"
-    num_samples_per_class: 200
-    num_translations_per_shape: 5  # Number of translated versions per base shape
-    num_classes: 3  # Number of different shape classes to generate
-  - folder_name: "shape_dataset_400"
-    num_samples_per_class: 400
-    num_translations_per_shape: 5  # Number of translated versions per base shape
-    num_classes: 5  # Number of different shape classes to generate
+  - folder_name: "shape_dataset_20"
+    num_samples_per_class: 20
+    num_classes: 10  # Number of different shape classes to generate
